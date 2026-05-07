@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEEP — Muthuvel Education Enhancement Program</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brand:#1a3a5c;--brand-light:#e8f0f9;--brand-mid:#2d6a9f;
+  --gold:#c9902a;--gold-light:#fdf4e3;
+  --success:#2e7d5e;--success-bg:#e8f5ee;
+  --danger:#b03030;--danger-bg:#fceaea;
+  --warn:#b06000;--warn-bg:#fff3dc;
+  --surface:#ffffff;--page:#f4f6f9;
+  --text:#1a2233;--muted:#6b7a90;--border:rgba(0,0,0,0.1);
+  --sidebar-w:220px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--page);color:var(--text);min-height:100vh;font-size:14px}
+
+/* ── TOAST ── */
+#toast-container{position:fixed;top:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;min-width:260px;max-width:340px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.15);animation:slideIn .25s ease;display:flex;align-items:center;gap:8px}
+.toast.success{background:#2e7d5e;color:#fff}.toast.error{background:#b03030;color:#fff}
+.toast.info{background:#1a3a5c;color:#fff}.toast.warn{background:#c9902a;color:#fff}
+@keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── LOGIN ── */
+#login-screen{min-height:100vh;background:linear-gradient(135deg,#0d2540 0%,#1a4a7a 50%,#0d2540 100%);
+  display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+#login-screen::before{content:'';position:absolute;inset:0;
+  background-image:radial-gradient(circle at 20% 50%,rgba(201,144,42,.08) 0%,transparent 50%),
+                   radial-gradient(circle at 80% 20%,rgba(45,106,159,.15) 0%,transparent 40%)}
+.login-card{background:rgba(255,255,255,.97);border-radius:16px;padding:40px 44px;width:420px;
+  position:relative;z-index:1;box-shadow:0 24px 80px rgba(0,0,0,.3)}
+.logo-emblem{width:64px;height:64px;border-radius:50%;background:var(--brand);display:flex;
+  align-items:center;justify-content:center;margin:0 auto 12px;
+  font-family:'Playfair Display',serif;font-size:22px;color:var(--gold);font-weight:600}
+.logo-name{font-family:'Playfair Display',serif;font-size:18px;color:var(--brand);font-weight:600;line-height:1.2;text-align:center}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.5px;text-align:center;display:block}
+.role-tabs{display:flex;gap:6px;margin:20px 0;background:var(--page);border-radius:8px;padding:4px}
+.role-tab{flex:1;padding:7px 8px;border:none;border-radius:6px;background:transparent;cursor:pointer;
+  font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;color:var(--muted);transition:all .2s}
+.role-tab.active{background:var(--surface);color:var(--brand);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:5px}
+.form-group input,.form-group select{width:100%;padding:9px 12px;border:1px solid var(--border);
+  border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);
+  color:var(--text);outline:none;transition:border-color .2s}
+.form-group input:focus{border-color:var(--brand-mid)}
+.btn-login{width:100%;padding:11px;background:var(--brand);color:white;border:none;border-radius:8px;
+  font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:background .2s;margin-top:4px}
+.btn-login:hover{background:var(--brand-mid)}
+.login-note{text-align:center;font-size:11px;color:var(--muted);margin-top:16px}
+
+/* ── APP SHELL ── */
+#app{display:none;min-height:100vh}
+.shell{display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar-w);background:var(--brand);display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo .em{font-family:'Playfair Display',serif;font-size:11px;color:var(--gold);
+  letter-spacing:.5px;display:block;margin-bottom:2px}
+.sidebar-logo .name{font-family:'Playfair Display',serif;font-size:14px;color:white;font-weight:600;line-height:1.3}
+.sidebar-logo .sub{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px;display:block}
+.sidebar-user{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--gold);display:flex;
+  align-items:center;justify-content:center;font-size:12px;font-weight:500;color:var(--brand);flex-shrink:0}
+.user-info .uname{font-size:12px;color:white;font-weight:500}
+.user-info .urole{font-size:10px;color:rgba(255,255,255,.5);margin-top:1px}
+.nav-section{padding:10px 0;flex:1}
+.nav-label{font-size:9px;letter-spacing:1px;color:rgba(255,255,255,.3);padding:8px 18px 4px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;
+  color:rgba(255,255,255,.65);font-size:13px;transition:all .15s;border-left:3px solid transparent}
+.nav-item:hover{background:rgba(255,255,255,.06);color:white}
+.nav-item.active{background:rgba(255,255,255,.1);color:white;border-left-color:var(--gold)}
+.nav-icon{font-size:14px;width:16px;text-align:center}
+.sidebar-bottom{padding:14px 18px;border-top:1px solid rgba(255,255,255,.08)}
+.logout-btn{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.5);font-size:12px;cursor:pointer;padding:6px 0;transition:color .2s}
+.logout-btn:hover{color:white}
+.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.topbar-title{font-family:'Playfair Display',serif;font-size:17px;color:var(--brand);font-weight:600}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.badge-pill{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;display:inline-flex;align-items:center;gap:4px}
+.badge-pill.admin{background:#e8f0f9;color:var(--brand)}.badge-pill.agent{background:#e8f5ee;color:var(--success)}
+.badge-pill.student{background:var(--gold-light);color:var(--gold)}
+.notif-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:var(--muted);position:relative}
+.notif-dot{position:absolute;top:-4px;right:-4px;background:#e24b4b;color:white;
+  font-size:9px;font-weight:600;width:16px;height:16px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;border:2px solid white}
+.content{padding:24px;flex:1}
+
+/* ── STAT CARDS ── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat-card{background:var(--surface);border-radius:10px;padding:16px 18px;border:1px solid var(--border)}
+.stat-label{font-size:11px;color:var(--muted);margin-bottom:6px}
+.stat-val{font-size:24px;font-weight:500;color:var(--text);font-family:'Playfair Display',serif}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.stat-icon{float:right;font-size:20px;opacity:.2;margin-top:-4px}
+
+/* ── CARDS & TABLES ── */
+.card{background:var(--surface);border-radius:10px;border:1px solid var(--border);overflow:hidden}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:500;color:var(--text)}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;font-weight:500;color:var(--muted);padding:10px 16px;text-align:left;background:#f9fafb;border-bottom:1px solid var(--border)}
+td{font-size:12px;padding:11px 16px;border-bottom:1px solid #f0f2f5;color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}tr:hover td{background:#fafbfc}
+.empty-state{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+
+/* ── STATUS BADGES ── */
+.status{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:500;white-space:nowrap}
+.status.pending{background:var(--warn-bg);color:var(--warn)}
+.status.reviewed{background:var(--brand-light);color:var(--brand)}
+.status.approved{background:var(--success-bg);color:var(--success)}
+.status.rejected{background:var(--danger-bg);color:var(--danger)}
+.status.verified{background:var(--success-bg);color:var(--success)}
+.status.active{background:var(--success-bg);color:var(--success)}
+.status.inactive{background:#f0f2f5;color:var(--muted)}
+.status.new{background:var(--brand-light);color:var(--brand)}
+
+/* ── BUTTONS ── */
+.btn{padding:6px 14px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;
+  font-weight:500;cursor:pointer;border:none;transition:all .15s}
+.btn-sm{padding:4px 10px;font-size:11px;border-radius:5px}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--brand-mid);color:var(--brand-mid)}
+.btn-blue{background:var(--brand);color:white}.btn-blue:hover{background:var(--brand-mid)}
+.btn-gold{background:var(--gold);color:white}.btn-gold:hover{background:#b07820}
+.btn-success{background:var(--success);color:white;font-family:'DM Sans',sans-serif}
+.btn-danger{background:var(--danger);color:white;font-family:'DM Sans',sans-serif}
+
+/* ── FORMS ── */
+.field-group{margin-bottom:14px}
+.field-group label{display:block;font-size:11px;font-weight:500;color:var(--muted);margin-bottom:5px}
+.field-group input,.field-group select,.field-group textarea{width:100%;padding:8px 12px;
+  border:1px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;
+  font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .2s}
+.field-group input:focus,.field-group select:focus{border-color:var(--brand-mid)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.row{display:grid;gap:14px;margin-bottom:14px}
+.row.col2{grid-template-columns:1fr 1fr}.row.col3{grid-template-columns:1fr 1fr 1fr}
+.row.col-wide{grid-template-columns:2fr 1fr}
+
+/* ── MISC ── */
+.alert{padding:10px 14px;border-radius:7px;font-size:12px;margin-bottom:14px;display:flex;gap:8px}
+.alert.info{background:var(--brand-light);color:var(--brand)}
+.alert.success{background:var(--success-bg);color:var(--success)}
+.alert.warn{background:var(--warn-bg);color:var(--warn)}
+.alert.danger{background:var(--danger-bg);color:var(--danger)}
+.prog-bar{height:5px;background:#e8eaf0;border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width .4s}
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab-item{padding:8px 16px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.tab-item.active{color:var(--brand);border-bottom-color:var(--brand)}
+.upload-box{border:1.5px dashed var(--border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;background:#fafbfc}
+.upload-box:hover{border-color:var(--brand-mid);background:var(--brand-light)}
+.timeline{padding:4px 0}
+.tl-item{display:flex;gap:12px;padding:8px 0}
+.tl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.tl-dot.done{background:var(--success)}.tl-dot.current{background:var(--gold)}.tl-dot.pending-dot{background:#d0d5de}
+.geo-banner{background:var(--brand);border-radius:10px;padding:14px 18px;color:white;display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.search-bar{display:flex;gap:8px;align-items:center}
+.search-input{padding:7px 12px;border:1px solid var(--border);border-radius:7px;font-size:12px;
+  font-family:'DM Sans',sans-serif;outline:none;color:var(--text);background:var(--surface);min-width:180px}
+.search-input:focus{border-color:var(--brand-mid)}
+.loading{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;padding:20px}
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--brand-mid);
+  border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;
+  align-items:center;justify-content:center;z-index:200}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:12px;width:520px;max-height:85vh;
+  overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:15px;font-weight:500;color:var(--text)}
+.modal-close{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;
+  cursor:pointer;font-size:14px;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.modal-body{padding:20px 22px}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+</style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="logo-emblem">ME</div>
+    <div class="logo-name">Muthuvel Education<br>Enhancement Program</div>
+    <span class="logo-sub">Parul University Recruitment Portal · PNG to India</span>
+    <div class="role-tabs">
+      <button class="role-tab active" onclick="selectRole('admin',this)">Admin</button>
+      <button class="role-tab" onclick="selectRole('agent',this)">Agent</button>
+      <button class="role-tab" onclick="selectRole('student',this)">Student</button>
+    </div>
+    <div class="form-group"><label>Email Address</label>
+      <input type="email" id="login-email" value="admin@muthuvel.edu"></div>
+    <div class="form-group"><label>Password</label>
+      <input type="password" id="login-pass" value="Admin@2025"></div>
+    <button class="btn-login" onclick="doLogin()">Sign In</button>
+    <div class="login-note">🔒 Secure portal · MEEP Student Management System</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <span class="em">MEEP</span>
+        <span class="name">Muthuvel Education</span>
+        <span class="sub">Student Management Portal</span>
+      </div>
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sb-avatar">AD</div>
+        <div class="user-info">
+          <div class="uname" id="sb-name">Loading...</div>
+          <div class="urole" id="sb-role">...</div>
+        </div>
+      </div>
+      <nav class="nav-section" id="nav-menu"></nav>
+      <div class="sidebar-bottom">
+        <div class="logout-btn" onclick="doLogout()">⬅ Sign Out</div>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div class="topbar-actions">
+          <span class="badge-pill" id="role-badge">...</span>
+          <div class="notif-btn" id="notif-btn" onclick="loadPanel('notifications')">
+            🔔<span class="notif-dot" id="notif-count" style="display:none">0</span>
+          </div>
+        </div>
+      </div>
+      <div class="content" id="content-area">
+        <div class="loading"><div class="spinner"></div> Loading...</div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Modal</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<script>
+let currentRole = 'admin';
+let currentPanel = '';
+
+function toast(msg, type='info') {
+  const icons = {success:'✅',error:'❌',info:'ℹ',warn:'⚠'};
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${icons[type]||'ℹ'}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+const ROLE_CREDS = {
+  admin:   { email:'admin@muthuvel.edu',      pw:'Admin@2025' },
+  agent:   { email:'peter@kavali.pg',         pw:'Agent@2025' },
+  student: { email:'james.tari@student.com',  pw:'Student@2025' }
+};
+
+function selectRole(role, btn) {
+  currentRole = role;
+  document.querySelectorAll('.role-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('login-email').value = ROLE_CREDS[role].email;
+  document.getElementById('login-pass').value  = ROLE_CREDS[role].pw;
+}
+
+function doLogin() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  setupRole(currentRole);
+  loadPanel('dashboard');
+}
+
+function doLogout() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+function setupRole(role) {
+  const configs = {
+    admin:   { name:'Dr. Anand Raj',    role:'Administrator · India',      avatar:'AR', badge:'Administrator', cls:'admin'   },
+    agent:   { name:'Peter Kavali',     role:'Recruitment Agent · PNG',    avatar:'PK', badge:'Agent · PNG',   cls:'agent'   },
+    student: { name:'James Tari',       role:'Student Applicant · PNG',    avatar:'JT', badge:'Student',       cls:'student' }
+  };
+  const c = configs[role];
+  document.getElementById('sb-avatar').textContent = c.avatar;
+  document.getElementById('sb-name').textContent   = c.name;
+  document.getElementById('sb-role').textContent   = c.role;
+  const rb = document.getElementById('role-badge');
+  rb.textContent = c.badge; rb.className = `badge-pill ${c.cls}`;
+
+  const menus = {
+    admin: [
+      {icon:'◼',label:'Dashboard',panel:'dashboard'},
+      {icon:'👥',label:'Agents',panel:'agents'},
+      {icon:'🎓',label:'Students',panel:'students'},
+      {icon:'📋',label:'Applications',panel:'applications'},
+      {icon:'📄',label:'Documents',panel:'documents'},
+      {icon:'📊',label:'Reports',panel:'reports'},
+      {icon:'⚙',label:'Settings',panel:'settings'},
+    ],
+    agent: [
+      {icon:'◼',label:'Dashboard',panel:'dashboard'},
+      {icon:'🎓',label:'My Students',panel:'students'},
+      {icon:'📋',label:'Applications',panel:'applications'},
+      {icon:'📄',label:'Documents',panel:'documents'},
+      {icon:'➕',label:'Register Student',panel:'register'},
+    ],
+    student: [
+      {icon:'◼',label:'My Dashboard',panel:'dashboard'},
+      {icon:'👤',label:'My Profile',panel:'profile'},
+      {icon:'📄',label:'Documents',panel:'documents'},
+      {icon:'📋',label:'My Application',panel:'applications'},
+      {icon:'🔔',label:'Notifications',panel:'notifications'},
+    ]
+  };
+
+  const nav = document.getElementById('nav-menu');
+  nav.innerHTML = '<div class="nav-label">Navigation</div>';
+  (menus[role]||[]).forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'nav-item'; d.dataset.panel = item.panel;
+    d.innerHTML = `<span class="nav-icon">${item.icon}</span><span>${item.label}</span>`;
+    d.onclick = () => loadPanel(item.panel);
+    nav.appendChild(d);
+  });
+}
+
+function loadPanel(panel) {
+  currentPanel = panel;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.panel === panel));
+  const titles = {dashboard:'Dashboard Overview',agents:'Agent Management',students:'Student Records',
+    applications:'Applications',documents:'Document Management',reports:'Reports & Analytics',
+    settings:'System Settings',register:'Register New Student',profile:'My Profile',notifications:'Notifications'};
+  document.getElementById('page-title').textContent = titles[panel] || panel;
+  const renders = {admin: renderAdmin, agent: renderAgent, student: renderStudent};
+  document.getElementById('content-area').innerHTML = renders[currentRole](panel);
+}
+
+function set(html) { document.getElementById('content-area').innerHTML = html; }
+function statusBadge(s) { return `<span class="status ${s||'pending'}">${s||'pending'}</span>`; }
+function fmt(d) { return d ? new Date(d).toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'}) : '—'; }
+function docRatio(total, verified) {
+  const t=total||0, v=verified||0, pct=t>0?Math.round(v/t*100):0;
+  return `<div style="font-size:11px;color:var(--muted);margin-bottom:2px">${v}/${t} verified</div>
+          <div class="prog-bar" style="width:80px"><div class="prog-fill" style="width:${pct}%;background:${pct===100?'var(--success)':'var(--gold)'}"></div></div>`;
+}
+
+// ── ADMIN ──
+function renderAdmin(panel) {
+  if (panel==='dashboard')    return adminDashboard();
+  if (panel==='agents')       return adminAgents();
+  if (panel==='students')     return adminStudents();
+  if (panel==='applications') return adminApplications();
+  if (panel==='documents')    return adminDocuments();
+  if (panel==='reports')      return adminReports();
+  if (panel==='settings')     return adminSettings();
+  return `<p>Panel: ${panel}</p>`;
+}
+
+function adminDashboard() {
+  return `
+  <div class="geo-banner">
+    <span style="font-size:22px">🇵🇬</span>
+    <div><div style="font-size:13px;font-weight:500">West New Britain Province Recruitment Drive — 2025</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.6)">Parul University, Vadodara, Gujarat · Partner: Muthuvel Education Enhancement Program</div></div>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><span class="stat-icon">🎓</span><div class="stat-label">Total Students</div><div class="stat-val">47</div><div class="stat-sub">↑ 8 this month</div></div>
+    <div class="stat-card"><span class="stat-icon">👥</span><div class="stat-label">Active Agents</div><div class="stat-val">6</div><div class="stat-sub">Across WNB Province</div></div>
+    <div class="stat-card"><span class="stat-icon">📋</span><div class="stat-label">Pending Review</div><div class="stat-val">12</div><div class="stat-sub">Awaiting admin action</div></div>
+    <div class="stat-card"><span class="stat-icon">✅</span><div class="stat-label">Approved</div><div class="stat-val">23</div><div class="stat-sub">Conversion: 49%</div></div>
+  </div>
+  <div class="row col-wide">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Recent Applications</span>
+        <button class="btn btn-outline btn-sm" onclick="loadPanel('applications')">View All</button></div>
+      <table><thead><tr><th>Student</th><th>Program</th><th>Agent</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+      <tbody>
+        ${[['James Tari','B.Tech CSE','Peter Kavali','pending','2 Jan 2025'],
+           ['Mary Pondo','BBA','Susan Mala','reviewed','28 Dec 2024'],
+           ['John Kaipu','MBBS','Peter Kavali','approved','20 Dec 2024'],
+           ['Alice Wari','B.Pharm','Tom Bana','approved','15 Dec 2024'],
+           ['Paul Kavana','B.Tech ME','Susan Mala','rejected','10 Dec 2024'],
+        ].map(([n,p,a,s,d])=>`<tr>
+          <td><strong>${n}</strong></td><td>${p}</td><td>${a}</td>
+          <td>${statusBadge(s)}</td><td>${d}</td>
+          <td style="display:flex;gap:4px">
+            ${s==='pending'||s==='reviewed'?`<button class="btn btn-success btn-sm" onclick="toast('Application approved!','success')">Approve</button>`:''}
+            <button class="btn btn-outline btn-sm" onclick="openModal('viewStudent')">View</button>
+          </td></tr>`).join('')}
+      </tbody></table>
+    </div>
+    <div>
+      <div class="card" style="padding:16px;margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:12px">Agent Performance</div>
+        ${[['Peter Kavali',18,20],['Susan Mala',14,20],['Tom Bana',9,20],['Grace Ito',6,20]].map(([n,v,m])=>`
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span>${n}</span><span style="color:var(--muted)">${v}</span></div>
+          <div class="prog-bar"><div class="prog-fill" style="width:${v/m*100}%;background:var(--brand-mid)"></div></div>
+        </div>`).join('')}
+      </div>
+      <div class="card" style="padding:16px">
+        <div class="card-title" style="margin-bottom:10px">Quick Actions</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-blue" onclick="openModal('addAgent')">+ Add Agent</button>
+          <button class="btn btn-gold" onclick="openModal('addStudent')">+ Register Student</button>
+          <button class="btn btn-outline" onclick="loadPanel('reports')">📊 View Reports</button>
+          <button class="btn btn-outline" onclick="loadPanel('documents')">📄 Review Documents</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function adminAgents() {
+  return `<div class="card">
+    <div class="card-header"><span class="card-title">Agents — West New Britain Province, PNG</span>
+      <button class="btn btn-blue" onclick="openModal('addAgent')">+ Add Agent</button></div>
+    <table><thead><tr><th>Name</th><th>Location</th><th>Phone</th><th>Students</th><th>Approved</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+      ${[['Peter Kavali','Kimbe, WNB','+675 7001 1001',18,14,'active'],
+         ['Susan Mala','Hoskins, WNB','+675 7001 1002',14,10,'active'],
+         ['Tom Bana','Bialla, WNB','+675 7001 1003',9,6,'active'],
+         ['Grace Ito','Kimbe, WNB','+675 7001 1004',6,3,'active'],
+         ['Mark Tole','Talasea, WNB','+675 7001 1005',0,0,'inactive'],
+      ].map(([n,l,ph,s,a,st])=>`<tr>
+        <td><strong>${n}</strong></td><td>${l}</td><td>${ph}</td>
+        <td>${s}</td><td>${a}</td><td>${statusBadge(st)}</td>
+        <td style="display:flex;gap:4px">
+          <button class="btn btn-outline btn-sm">View</button>
+          <button class="btn btn-outline btn-sm">${st==='active'?'Suspend':'Activate'}</button>
+        </td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function adminStudents() {
+  return `<div class="card">
+    <div class="card-header"><span class="card-title">All Students (47)</span>
+      <div class="search-bar">
+        <input class="search-input" placeholder="Search students..." oninput="filterTable(this,'stbl')">
+        <button class="btn btn-gold" onclick="openModal('addStudent')">+ Add Student</button>
+      </div></div>
+    <table id="stbl"><thead><tr><th>Name</th><th>Village</th><th>Program</th><th>Agent</th><th>Documents</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+      ${[['James Tari','Kimbe','B.Tech CSE','Peter Kavali',3,4,'pending'],
+         ['Mary Pondo','Hoskins','BBA','Susan Mala',4,4,'reviewed'],
+         ['John Kaipu','Bialla','MBBS','Peter Kavali',4,4,'approved'],
+         ['Alice Wari','Talasea','B.Pharm','Tom Bana',4,4,'approved'],
+         ['Paul Kavana','Kimbe','B.Tech ME','Susan Mala',2,4,'rejected'],
+         ['Rose Baki','Hoskins','BCA','Grace Ito',1,4,'pending'],
+         ['Thomas Mala','Bialla','MBA','Peter Kavali',4,4,'reviewed'],
+      ].map(([n,v,p,a,dv,dt,s])=>`<tr>
+        <td><strong>${n}</strong></td><td>${v}</td><td>${p}</td><td>${a}</td>
+        <td>${docRatio(dt,dv)}</td><td>${statusBadge(s)}</td>
+        <td><button class="btn btn-outline btn-sm" onclick="openModal('viewStudent')">View</button></td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function adminApplications() {
+  const apps = [
+    ['APP-2025-001','James Tari','B.Tech CSE','Peter Kavali',3,4,'pending','2 Jan 2025'],
+    ['APP-2025-002','Mary Pondo','BBA','Susan Mala',4,4,'reviewed','28 Dec 2024'],
+    ['APP-2024-018','John Kaipu','MBBS','Peter Kavali',4,4,'approved','20 Dec 2024'],
+    ['APP-2024-017','Alice Wari','B.Pharm','Tom Bana',4,4,'approved','15 Dec 2024'],
+    ['APP-2024-015','Paul Kavana','B.Tech ME','Susan Mala',2,4,'rejected','10 Dec 2024'],
+    ['APP-2025-003','Rose Baki','BCA','Grace Ito',1,4,'pending','4 Jan 2025'],
+  ];
+  window._allApps = apps;
+  return `
+  <div class="tab-bar" id="app-tabs">
+    ${['All','Pending','Reviewed','Approved','Rejected'].map((t,i)=>`
+      <div class="tab-item${i===0?' active':''}" onclick="filterApps(this,'${t.toLowerCase()}')">${t}</div>`).join('')}
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Application Reviews</span>
+      <input class="search-input" placeholder="Search..." oninput="filterTable(this,'atbl')"></div>
+    <table id="atbl"><thead><tr><th>App ID</th><th>Student</th><th>Program</th><th>Agent</th><th>Docs</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody id="apps-tbody">${renderAppRows(apps)}</tbody></table></div>`;
+}
+
+function renderAppRows(apps) {
+  return apps.map(([id,n,p,a,dv,dt,s,d])=>`<tr>
+    <td style="font-size:11px;color:var(--muted)">${id}</td>
+    <td><strong>${n}</strong></td><td>${p}</td><td>${a}</td>
+    <td>${docRatio(dt,dv)}</td><td>${statusBadge(s)}</td>
+    <td style="display:flex;gap:4px;flex-wrap:wrap">
+      ${s==='pending'||s==='reviewed'?`<button class="btn btn-success btn-sm" onclick="toast('Approved!','success')">Approve</button>
+      <button class="btn btn-danger btn-sm" onclick="toast('Rejected','warn')">Reject</button>`:''}
+      <button class="btn btn-outline btn-sm" onclick="openModal('viewStudent')">View</button>
+    </td></tr>`).join('');
+}
+
+function filterApps(el, status) {
+  document.querySelectorAll('#app-tabs .tab-item').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const f = status==='all' ? window._allApps : (window._allApps||[]).filter(a=>a[6]===status);
+  document.getElementById('apps-tbody').innerHTML = renderAppRows(f);
+}
+
+function adminDocuments() {
+  return `<div class="card">
+    <div class="card-header"><span class="card-title">Document Verification</span>
+      <input class="search-input" placeholder="Search by student..." oninput="filterTable(this,'dtbl')"></div>
+    <table id="dtbl"><thead><tr><th>Student</th><th>Type</th><th>File</th><th>Uploaded</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+      ${[['James Tari','Passport','passport_james.pdf','2 Jan 2025','pending'],
+         ['James Tari','Academic Transcript','transcript_james.pdf','2 Jan 2025','pending'],
+         ['Mary Pondo','Passport','passport_mary.pdf','28 Dec 2024','verified'],
+         ['Mary Pondo','Grade 12 Certificate','cert_mary.pdf','28 Dec 2024','verified'],
+         ['John Kaipu','Medical Certificate','medical_john.pdf','20 Dec 2024','verified'],
+         ['Alice Wari','Passport','passport_alice.pdf','15 Dec 2024','verified'],
+      ].map(([s,t,f,d,st])=>`<tr>
+        <td><strong>${s}</strong></td><td>${t}</td>
+        <td style="font-size:11px;color:var(--brand-mid)">📎 ${f}</td><td>${d}</td>
+        <td>${statusBadge(st)}</td>
+        <td style="display:flex;gap:4px">
+          ${st==='pending'?`<button class="btn btn-success btn-sm" onclick="toast('Document verified!','success')">✓ Verify</button>
+          <button class="btn btn-danger btn-sm" onclick="toast('Document rejected','warn')">✗ Reject</button>`:
+          `<span style="font-size:11px;color:var(--muted)">${st==='verified'?'Verified ✓':'Rejected'}</span>`}
+        </td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function adminReports() {
+  return `
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">Enrolled</div><div class="stat-val">23</div><div class="stat-sub">Ready for Parul University</div></div>
+    <div class="stat-card"><div class="stat-label">Conversion Rate</div><div class="stat-val">49%</div><div class="stat-sub">Apps to enrollment</div></div>
+    <div class="stat-card"><div class="stat-label">Under Review</div><div class="stat-val">17</div><div class="stat-sub">Pending + reviewed</div></div>
+    <div class="stat-card"><div class="stat-label">Rejected</div><div class="stat-val">5</div><div class="stat-sub">Did not meet criteria</div></div>
+  </div>
+  <div class="row col2">
+    <div class="card" style="padding:16px">
+      <div class="card-title" style="margin-bottom:14px">Enrollment by Program</div>
+      ${[['MBBS',12,45],['B.Tech CSE',10,37],['BBA',8,30],['B.Pharm',7,26],['B.Tech ME',6,22],['MBA',4,15]].map(([p,n,pct])=>`
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+          <span>${p}</span><span style="color:var(--muted)">${n} students</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:var(--brand)"></div></div>
+      </div>`).join('')}
+    </div>
+    <div class="card" style="padding:16px">
+      <div class="card-title" style="margin-bottom:14px">Application Pipeline</div>
+      ${[['Registered',47,'var(--muted)'],['Pending',12,'var(--gold)'],['Reviewed',5,'var(--brand-mid)'],
+         ['Approved',23,'var(--success)'],['Rejected',5,'var(--danger)']].map(([l,n,c])=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f2f5;font-size:12px">
+        <div style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></div>
+        <span style="flex:1">${l}</span><span style="font-weight:500">${n}</span>
+      </div>`).join('')}
+      <div style="margin-top:12px">
+        <div class="card-title" style="margin-bottom:8px">Agent Performance</div>
+        ${[['Peter Kavali',18,14],['Susan Mala',14,10],['Tom Bana',9,6],['Grace Ito',6,3]].map(([n,s,a])=>`
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid #f0f2f5">
+          <span>${n}</span><span>${a}/${s} approved</span></div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function adminSettings() {
+  return `<div class="row col2">
+    <div class="card" style="padding:20px">
+      <div class="card-title" style="margin-bottom:16px">Organization Settings</div>
+      <div class="field-group"><label>Organization Name</label><input value="Muthuvel Education Enhancement Program"></div>
+      <div class="field-group"><label>Partner University</label><input value="Parul University, Vadodara, Gujarat, India"></div>
+      <div class="field-group"><label>Recruitment Region</label><input value="West New Britain Province, Papua New Guinea"></div>
+      <div class="field-group"><label>Admin Email</label><input value="admin@muthuvel.edu"></div>
+      <div class="field-group"><label>Contact Phone</label><input value="+91-265-XXXXXXX"></div>
+      <button class="btn btn-blue" onclick="toast('Settings saved!','success')">Save Changes</button>
+    </div>
+    <div class="card" style="padding:20px">
+      <div class="card-title" style="margin-bottom:14px">Active Programs</div>
+      ${['MBBS','B.Tech (CSE)','B.Tech (ME)','B.Tech (EE)','BBA','MBA','BCA','B.Pharm','B.Sc Nursing'].map(p=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f2f5;font-size:12px">
+        <span>${p}</span>
+        <div style="display:flex;gap:4px">
+          <span class="status active">Active</span>
+          <button class="btn btn-outline btn-sm">Edit</button>
+        </div>
+      </div>`).join('')}
+      <button class="btn btn-outline" style="margin-top:10px;width:100%">+ Add Program</button>
+    </div>
+  </div>`;
+}
+
+// ── AGENT ──
+function renderAgent(panel) {
+  if (panel==='dashboard')    return agentDashboard();
+  if (panel==='students')     return agentStudents();
+  if (panel==='applications') return agentApplications();
+  if (panel==='documents')    return agentDocuments();
+  if (panel==='register')     return agentRegister();
+  return '';
+}
+
+function agentDashboard() {
+  return `<div class="alert info">🇵🇬 Welcome, Peter Kavali · Kimbe, West New Britain Province · Recruiting for Parul University</div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">My Students</div><div class="stat-val">18</div><div class="stat-sub">Total registered</div></div>
+    <div class="stat-card"><div class="stat-label">Pending Review</div><div class="stat-val">4</div><div class="stat-sub">Awaiting admin</div></div>
+    <div class="stat-card"><div class="stat-label">Incomplete Docs</div><div class="stat-val">3</div><div class="stat-sub">Need attention</div></div>
+    <div class="stat-card"><div class="stat-label">Approved</div><div class="stat-val">14</div><div class="stat-sub">Enrollment confirmed</div></div>
+  </div>
+  <div class="row col-wide">
+    <div class="card">
+      <div class="card-header"><span class="card-title">My Students</span>
+        <button class="btn btn-gold" onclick="loadPanel('register')">+ Register New</button></div>
+      <table><thead><tr><th>Name</th><th>Village</th><th>Program</th><th>Docs</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>
+        ${[['James Tari','Kimbe','B.Tech CSE',3,4,'pending'],
+           ['John Kaipu','Bialla','MBBS',4,4,'approved'],
+           ['Thomas Mala','Hoskins','MBA',4,4,'reviewed'],
+           ['Ken Piari','Kimbe','BBA',2,4,'pending'],
+           ['Lina Wabo','Talasea','B.Pharm',1,4,'pending'],
+        ].map(([n,v,p,dv,dt,s])=>`<tr>
+          <td><strong>${n}</strong></td><td>${v}</td><td>${p}</td>
+          <td>${docRatio(dt,dv)}</td><td>${statusBadge(s)}</td>
+          <td style="display:flex;gap:4px">
+            <button class="btn btn-outline btn-sm" onclick="openModal('viewStudent')">View</button>
+            ${s==='pending'?`<button class="btn btn-blue btn-sm" onclick="openModal('submitApp')">Apply</button>`:''}
+          </td></tr>`).join('')}
+      </tbody></table>
+    </div>
+    <div>
+      <div class="card" style="padding:16px;margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:12px">Doc Completion</div>
+        ${[['James Tari',3,4],['Ken Piari',2,4],['Lina Wabo',1,4]].map(([n,v,t])=>`
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+            <span>${n}</span><span style="color:var(--muted)">${v}/${t}</span></div>
+          <div class="prog-bar"><div class="prog-fill" style="width:${v/t*100}%;background:var(--gold)"></div></div>
+        </div>`).join('')}
+      </div>
+      <div class="card" style="padding:16px">
+        <div class="card-title" style="margin-bottom:10px">Quick Actions</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-gold" onclick="loadPanel('register')">+ Register Student</button>
+          <button class="btn btn-outline" onclick="loadPanel('documents')">📄 Review Docs</button>
+          <button class="btn btn-outline" onclick="loadPanel('applications')">📋 View Applications</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function agentStudents() {
+  return `<div class="card">
+    <div class="card-header"><span class="card-title">My Students (18)</span>
+      <button class="btn btn-gold" onclick="loadPanel('register')">+ Register</button></div>
+    <table><thead><tr><th>Name</th><th>Village</th><th>Age</th><th>Program</th><th>Documents</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+      ${[['James Tari','Kimbe',22,'B.Tech CSE',3,4,'pending'],
+         ['John Kaipu','Bialla',21,'MBBS',4,4,'approved'],
+         ['Thomas Mala','Hoskins',24,'MBA',4,4,'reviewed'],
+         ['Ken Piari','Kimbe',20,'BBA',2,4,'pending'],
+         ['Lina Wabo','Talasea',19,'B.Pharm',1,4,'pending'],
+      ].map(([n,v,a,p,dv,dt,s])=>`<tr>
+        <td><strong>${n}</strong></td><td>${v}</td><td>${a}</td><td>${p}</td>
+        <td>${docRatio(dt,dv)}</td><td>${statusBadge(s)}</td>
+        <td style="display:flex;gap:4px">
+          <button class="btn btn-outline btn-sm">View</button>
+          ${s==='pending'?`<button class="btn btn-blue btn-sm">Submit App</button>`:''}
+        </td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function agentApplications() {
+  return `<div class="card">
+    <div class="card-header"><span class="card-title">Applications</span></div>
+    <table><thead><tr><th>App ID</th><th>Student</th><th>Program</th><th>Docs</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody>
+      ${[['APP-2025-001','James Tari','B.Tech CSE',3,4,'pending','2 Jan 2025'],
+         ['APP-2024-018','John Kaipu','MBBS',4,4,'approved','20 Dec 2024'],
+         ['APP-2025-004','Thomas Mala','MBA',4,4,'reviewed','5 Jan 2025'],
+      ].map(([id,n,p,dv,dt,s,d])=>`<tr>
+        <td style="font-size:11px;color:var(--muted)">${id}</td>
+        <td><strong>${n}</strong></td><td>${p}</td>
+        <td>${docRatio(dt,dv)}</td><td>${statusBadge(s)}</td><td>${d}</td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function agentDocuments() {
+  return `<div class="card">
+    <div class="card-header"><span class="card-title">Student Documents</span>
+      <button class="btn btn-blue" onclick="openModal('uploadDoc')">↑ Upload</button></div>
+    <table><thead><tr><th>Student</th><th>Type</th><th>File</th><th>Uploaded</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+      ${[['James Tari','passport_james.pdf','Passport','pending'],
+         ['James Tari','transcript_james.pdf','Transcript','pending'],
+         ['James Tari','grade12_james.pdf','Certificate','verified'],
+         ['John Kaipu','passport_john.pdf','Passport','verified'],
+      ].map(([s,f,t,st])=>`<tr>
+        <td><strong>${s}</strong></td>
+        <td style="font-size:11px;color:var(--brand-mid)">📎 ${f}</td><td>${t}</td>
+        <td>2 Jan 2025</td><td>${statusBadge(st)}</td>
+        <td><button class="btn btn-outline btn-sm">Pre-Verify</button></td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function agentRegister() {
+  return `<div class="card" style="max-width:700px">
+    <div class="card-header"><span class="card-title">Register New Student</span></div>
+    <div style="padding:20px 22px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;font-weight:500">Personal Information</div>
+      <div class="grid-2">
+        <div class="field-group"><label>First Name *</label><input placeholder="e.g. James"></div>
+        <div class="field-group"><label>Last Name *</label><input placeholder="e.g. Tari"></div>
+      </div>
+      <div class="grid-2">
+        <div class="field-group"><label>Email *</label><input type="email" placeholder="student@email.com"></div>
+        <div class="field-group"><label>Phone</label><input placeholder="+675 XXXX XXXX"></div>
+      </div>
+      <div class="grid-2">
+        <div class="field-group"><label>Date of Birth</label><input type="date"></div>
+        <div class="field-group"><label>Gender</label>
+          <select><option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+      </div>
+      <div class="grid-2">
+        <div class="field-group"><label>Village / Town</label><input placeholder="e.g. Kimbe"></div>
+        <div class="field-group"><label>District</label>
+          <select><option value="">Select...</option><option>Kimbe</option><option>Bialla</option><option>Talasea</option><option>Hoskins</option></select></div>
+      </div>
+      <div class="field-group"><label>Passport Number</label><input placeholder="e.g. P1234567"></div>
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin:14px 0">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px;font-weight:500">Academic Background</div>
+        <div class="grid-2">
+          <div class="field-group"><label>Last School</label><input placeholder="Secondary school name"></div>
+          <div class="field-group"><label>Grade 12 Year</label><input type="number" placeholder="e.g. 2023"></div>
+        </div>
+        <div class="field-group"><label>Program of Interest</label>
+          <select><option value="">Select program...</option>
+            ${['MBBS','B.Tech (CSE)','B.Tech (ME)','B.Tech (EE)','BBA','MBA','BCA','B.Pharm','B.Sc Nursing'].map(p=>`<option>${p}</option>`).join('')}
+          </select></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:500">Document Upload</div>
+      <div class="grid-2">
+        <div class="upload-box"><div style="font-size:24px;margin-bottom:6px">🛂</div><div style="font-size:12px;color:var(--muted)">Upload Passport<br><span style="font-size:10px">PDF, JPG, PNG · Max 5MB</span></div></div>
+        <div class="upload-box"><div style="font-size:24px;margin-bottom:6px">📜</div><div style="font-size:12px;color:var(--muted)">Grade 12 Certificate<br><span style="font-size:10px">PDF · Max 5MB</span></div></div>
+        <div class="upload-box"><div style="font-size:24px;margin-bottom:6px">📋</div><div style="font-size:12px;color:var(--muted)">Upload Transcript<br><span style="font-size:10px">PDF · Max 5MB</span></div></div>
+        <div class="upload-box"><div style="font-size:24px;margin-bottom:6px">🏥</div><div style="font-size:12px;color:var(--muted)">Medical Certificate<br><span style="font-size:10px">PDF · Max 5MB</span></div></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button class="btn btn-gold" onclick="toast('Student registered successfully!','success')" style="flex:1;padding:10px">Register Student</button>
+        <button class="btn btn-outline" onclick="loadPanel('students')" style="flex:1;padding:10px">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── STUDENT ──
+function renderStudent(panel) {
+  if (panel==='dashboard')     return studentDashboard();
+  if (panel==='profile')       return studentProfile();
+  if (panel==='documents')     return studentDocuments();
+  if (panel==='applications')  return studentApplication();
+  if (panel==='notifications') return studentNotifications();
+  return '';
+}
+
+function studentDashboard() {
+  return `<div class="alert success">📋 Application APP-2025-001 is pending review. Please upload your Medical Certificate to complete your application.</div>
+  <div class="row col-wide">
+    <div class="card" style="padding:18px">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+        <div style="width:48px;height:48px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:16px;color:white;font-weight:600">JT</div>
+        <div>
+          <div style="font-size:15px;font-weight:500">James Tari</div>
+          <div style="font-size:12px;color:var(--muted)">Kimbe, West New Britain · PNG</div>
+        </div>
+        ${statusBadge('pending')}
+      </div>
+      <div class="grid-3" style="gap:10px">
+        <div style="background:var(--brand-light);padding:10px;border-radius:8px;text-align:center">
+          <div style="font-size:11px;color:var(--muted)">Program</div>
+          <div style="font-size:12px;font-weight:500;margin-top:2px">B.Tech CSE</div></div>
+        <div style="background:var(--gold-light);padding:10px;border-radius:8px;text-align:center">
+          <div style="font-size:11px;color:var(--muted)">Agent</div>
+          <div style="font-size:12px;font-weight:500;margin-top:2px">Peter Kavali</div></div>
+        <div style="background:var(--success-bg);padding:10px;border-radius:8px;text-align:center">
+          <div style="font-size:11px;color:var(--muted)">University</div>
+          <div style="font-size:12px;font-weight:500;margin-top:2px">Parul Univ.</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="padding:18px;margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:10px">Documents Uploaded</div>
+        <div style="text-align:center;margin-bottom:10px">
+          <div style="font-size:32px;font-family:'Playfair Display',serif;font-weight:600;color:var(--brand)">3/4</div>
+          <div style="font-size:11px;color:var(--muted)">2 verified</div></div>
+        <div class="prog-bar" style="height:8px;margin-bottom:10px">
+          <div class="prog-fill" style="width:75%;background:var(--gold)"></div></div>
+        <button class="btn btn-gold" style="width:100%" onclick="loadPanel('documents')">Manage Documents</button>
+      </div>
+      <div class="card" style="padding:16px">
+        <div class="card-title" style="margin-bottom:8px">About Parul University</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.8">
+          <div>📍 Vadodara, Gujarat, India</div>
+          <div>🏫 300+ programs offered</div>
+          <div>🌍 Students from 50+ countries</div>
+          <div>🎓 NAAC A+ Accredited</div>
+          <div>✈ Full pre-departure support</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="padding:18px">
+    <div class="card-title" style="margin-bottom:14px">Application Timeline</div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;text-align:center">
+      ${[['Registered','done'],['Profile Done','done'],['Docs Upload','current'],
+         ['Agent Review','pending-dot'],['Admin Decision','pending-dot'],['Offer Letter','pending-dot']].map(([l,cls])=>`
+      <div>
+        <div style="display:flex;justify-content:center;margin-bottom:6px">
+          <div class="tl-dot ${cls}" style="width:14px;height:14px;margin:0"></div></div>
+        <div style="font-size:10px;color:${cls==='done'?'var(--success)':cls==='current'?'var(--gold)':'var(--muted)'};font-weight:${cls!=='pending-dot'?'500':'400'}">${l}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function studentProfile() {
+  return `<div class="card" style="max-width:640px">
+    <div class="card-header"><span class="card-title">My Profile</span><button class="btn btn-outline btn-sm">Edit</button></div>
+    <div style="padding:20px 22px">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:20px;color:white;font-weight:600">JT</div>
+        <div>
+          <div style="font-size:16px;font-weight:500">James Karo Tari</div>
+          <div style="font-size:12px;color:var(--muted)">james.tari@student.com</div>
+        </div>
+      </div>
+      <div class="grid-2" style="gap:14px">
+        ${[['Full Name','James Karo Tari'],['Date of Birth','15 Mar 2002'],
+           ['Nationality','Papua New Guinean'],['Passport No.','P1234567'],
+           ['Village/Town','Kimbe'],['District','Kimbe'],
+           ['Phone','+675 7234 5678'],['Grade 12 Year','2023'],
+           ['Last School','Kimbe Secondary School'],['Program Interest','B.Tech CSE'],
+           ['Recruiting Agent','Peter Kavali'],['Agent Location','Kimbe, WNB'],
+        ].map(([l,v])=>`<div><div style="font-size:10px;color:var(--muted);margin-bottom:2px;text-transform:uppercase">${l}</div>
+          <div style="font-size:13px">${v}</div></div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function studentDocuments() {
+  const docs = [
+    {type:'passport',label:'Passport (Photo Page)',file:'passport_james.pdf',date:'2 Jan 2025',status:'verified'},
+    {type:'transcript',label:'Academic Transcript',file:'transcript_james.pdf',date:'2 Jan 2025',status:'pending'},
+    {type:'certificate',label:'Grade 12 Certificate',file:'grade12_james.pdf',date:'30 Dec 2024',status:'verified'},
+    {type:'medical',label:'Medical Certificate',file:null,date:null,status:'missing'},
+  ];
+  return `<div class="alert warn">⚠ Medical Certificate is missing. Please upload to complete your application.</div>
+  <div class="card" style="max-width:660px">
+    <div class="card-header"><span class="card-title">Required Documents</span></div>
+    <div style="padding:8px 20px">
+      ${docs.map(d=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid #f0f2f5">
+        <div style="width:38px;height:38px;border-radius:8px;background:${d.status==='verified'?'var(--success-bg)':d.status==='missing'?'#f0f2f5':'var(--warn-bg)'};display:flex;align-items:center;justify-content:center;font-size:16px">
+          ${d.status==='verified'?'✅':d.status==='missing'?'📭':'⏳'}</div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:500">${d.label}</div>
+          <div style="font-size:11px;color:var(--muted)">${d.file?`📎 ${d.file} · ${d.date}`:'Not uploaded yet'}</div>
+        </div>
+        ${d.status==='missing'?'<span style="font-size:11px;color:var(--muted)">Missing</span>':statusBadge(d.status)}
+        <button class="btn btn-gold btn-sm" onclick="toast('Upload feature requires the running server','info')">${d.file?'↻ Replace':'↑ Upload'}</button>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function studentApplication() {
+  return `<div class="card" style="max-width:620px">
+    <div class="card-header"><span class="card-title">Application: APP-2025-001</span>${statusBadge('pending')}</div>
+    <div style="padding:18px 22px">
+      <div class="grid-2" style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        ${[['University','Parul University, Vadodara, India'],['Program','B.Tech (Computer Science)'],
+           ['Applied','2 January 2025'],['Intake','July 2025']
+        ].map(([l,v])=>`<div><div style="font-size:10px;color:var(--muted)">${l}</div>
+          <div style="font-size:13px;margin-top:2px">${v}</div></div>`).join('')}
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Application Progress</div>
+      ${[['Application Submitted','2 Jan 2025','done'],
+         ['Document Verification','In progress — 3 of 4 docs received','current'],
+         ['Admin Review','Scheduled after doc completion','pending-dot'],
+         ['Approval Decision','Estimated: 3–5 working days','pending-dot'],
+         ['Offer Letter Issued','From Parul University','pending-dot'],
+         ['Visa Application Support','MEEP will assist with Indian student visa','pending-dot'],
+      ].map(([l,d,cls])=>`
+      <div class="tl-item">
+        <div class="tl-dot ${cls}"></div>
+        <div><div style="font-size:12px;font-weight:500">${l}</div>
+        <div style="font-size:11px;color:var(--muted)">${d}</div></div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function studentNotifications() {
+  const notifs = [
+    {icon:'⚠',msg:'Your Medical Certificate is still missing. Please upload to proceed.',time:'Today, 10:30 AM',type:'warn',read:false},
+    {icon:'📋',msg:'Your application APP-2025-001 has been received by Muthuvel Education.',time:'2 Jan 2025',type:'info',read:false},
+    {icon:'👤',msg:'Your profile has been created by Agent Peter Kavali.',time:'28 Dec 2024',type:'info',read:false},
+    {icon:'✅',msg:'Your Grade 12 Certificate was successfully uploaded.',time:'30 Dec 2024',type:'success',read:true},
+    {icon:'✅',msg:'Your Passport was successfully uploaded and verified.',time:'2 Jan 2025',type:'success',read:true},
+  ];
+  return `<div class="card" style="max-width:620px">
+    <div class="card-header"><span class="card-title">Notifications</span>
+      <button class="btn btn-outline btn-sm" onclick="toast('All marked as read','info')">Mark all read</button></div>
+    <div>
+      ${notifs.map(n=>`
+      <div style="padding:14px 18px;border-bottom:1px solid #f0f2f5;display:flex;gap:12px;background:${n.read?'transparent':n.type==='success'?'var(--success-bg)':n.type==='warn'?'var(--warn-bg)':'var(--brand-light)'}">
+        <div style="font-size:16px;margin-top:1px">${n.icon}</div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:${n.read?'400':'500'}">${n.msg}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">${n.time}</div>
+        </div>
+        ${!n.read?'<div style="width:8px;height:8px;border-radius:50%;background:var(--brand-mid);flex-shrink:0;margin-top:4px"></div>':''}
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ── MODALS ──
+function openModal(type) {
+  const body   = document.getElementById('modal-body');
+  const footer = document.getElementById('modal-footer');
+  const title  = document.getElementById('modal-title');
+
+  if (type === 'addAgent') {
+    title.textContent = 'Add New Agent';
+    body.innerHTML = `
+      <div class="grid-2">
+        <div class="field-group"><label>Full Name *</label><input placeholder="Agent name"></div>
+        <div class="field-group"><label>Email *</label><input type="email" placeholder="agent@email.pg"></div>
+      </div>
+      <div class="grid-2">
+        <div class="field-group"><label>Password *</label><input type="password" placeholder="Min 8 chars"></div>
+        <div class="field-group"><label>Phone</label><input placeholder="+675 XXXX XXXX"></div>
+      </div>
+      <div class="field-group"><label>Location *</label>
+        <select><option value="">Select location...</option>
+          <option>Kimbe, WNB</option><option>Bialla, WNB</option><option>Hoskins, WNB</option><option>Talasea, WNB</option></select></div>`;
+    footer.innerHTML = `<button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-blue" onclick="toast('Agent added successfully!','success');closeModal()">Add Agent</button>`;
+  }
+  else if (type === 'addStudent') {
+    title.textContent = 'Quick Register Student';
+    body.innerHTML = `
+      <div class="grid-2">
+        <div class="field-group"><label>First Name *</label><input placeholder="First name"></div>
+        <div class="field-group"><label>Last Name *</label><input placeholder="Last name"></div>
+      </div>
+      <div class="field-group"><label>Email *</label><input type="email" placeholder="student@email.com"></div>
+      <div class="field-group"><label>Phone</label><input placeholder="+675 XXXX XXXX"></div>
+      <div class="field-group"><label>Program</label>
+        <select><option value="">Select program...</option>
+          ${['MBBS','B.Tech (CSE)','B.Tech (ME)','BBA','MBA','BCA','B.Pharm','B.Sc Nursing'].map(p=>`<option>${p}</option>`).join('')}
+        </select></div>`;
+    footer.innerHTML = `<button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="toast('Student registered!','success');closeModal()">Register</button>`;
+  }
+  else if (type === 'viewStudent') {
+    title.textContent = 'Student Profile';
+    body.innerHTML = `
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px">
+        <div style="width:44px;height:44px;border-radius:50%;background:var(--brand);color:white;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:16px">JT</div>
+        <div><div style="font-weight:500">James Tari</div>
+        <div style="font-size:12px;color:var(--muted)">Kimbe, WNB · B.Tech CSE</div></div>
+      </div>
+      <div class="grid-2" style="font-size:12px;gap:8px">
+        ${[['Phone','+675 7234 5678'],['Email','james.tari@student.com'],
+           ['Passport','P1234567'],['Agent','Peter Kavali'],
+           ['Docs','3/4 uploaded'],['Applied','2 Jan 2025']
+        ].map(([l,v])=>`<div><span style="color:var(--muted)">${l}: </span>${v}</div>`).join('')}
+      </div>`;
+    footer.innerHTML = `<button class="btn btn-outline" onclick="closeModal()">Close</button>
+      <button class="btn btn-success" onclick="toast('Application approved!','success');closeModal()">Approve Application</button>`;
+  }
+  else if (type === 'uploadDoc') {
+    title.textContent = 'Upload Document';
+    body.innerHTML = `
+      <div class="field-group"><label>Document Type</label>
+        <select><option>Passport</option><option>Transcript</option><option>Certificate</option><option>Medical</option></select></div>
+      <div class="field-group"><label>File (PDF, JPG, PNG · max 5MB)</label>
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png" style="padding:6px"></div>
+      <div class="alert info">Note: File upload requires the running backend server. Download the full platform from the conversation.</div>`;
+    footer.innerHTML = `<button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-blue" onclick="toast('Connect to server for file uploads','warn');closeModal()">Upload</button>`;
+  }
+  else if (type === 'submitApp') {
+    title.textContent = 'Submit Application';
+    body.innerHTML = `
+      <div class="alert info">Submitting application for James Tari to Parul University.</div>
+      <div class="field-group"><label>Program *</label>
+        <select><option>B.Tech (CSE)</option><option>MBBS</option><option>BBA</option></select></div>
+      <div class="field-group"><label>Intake</label>
+        <select><option>July 2025</option><option>January 2026</option></select></div>
+      <div class="field-group"><label>Notes (optional)</label>
+        <textarea rows="3" placeholder="Any notes for admin..."></textarea></div>`;
+    footer.innerHTML = `<button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="toast('Application submitted!','success');closeModal()">Submit Application</button>`;
+  }
+
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function filterTable(input, tableId) {
+  const q = input.value.toLowerCase();
+  document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
