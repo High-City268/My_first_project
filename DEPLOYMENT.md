@@ -41,7 +41,7 @@ Project Structure:
 ## Local Development
 
 ### Prerequisites
-- Node.js 18.x or higher
+- Node.js 24.x or higher
 - npm or yarn
 
 ### Setup
