@@ -189,6 +189,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafbfc}
   cursor:pointer;font-size:14px;color:var(--muted);display:flex;align-items:center;justify-content:center}
 .modal-body{padding:20px 22px}
 .modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+.notif-dot{display:none}
+.notif-dot.show{display:inline-block}
 </style>
 </head>
 <body>
@@ -207,9 +209,9 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafbfc}
       <button class="role-tab" onclick="selectRole('student',this)">Student</button>
     </div>
     <div class="form-group"><label>Email Address</label>
-      <input type="email" id="login-email" value="admin@muthuvel.edu"></div>
+      <input type="email" id="login-email" value="admin@muthuvel.edu" placeholder="Enter your email" title="Email Address"></div>
     <div class="form-group"><label>Password</label>
-      <input type="password" id="login-pass" value="Admin@2025"></div>
+      <input type="password" id="login-pass" value="Admin@2025" placeholder="Enter your password" title="Password"></div>
     <button class="btn-login" onclick="doLogin()">Sign In</button>
     <div class="login-note">🔒 Secure portal · MEEP Student Management System</div>
   </div>
@@ -242,7 +244,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafbfc}
         <div class="topbar-actions">
           <span class="badge-pill" id="role-badge">...</span>
           <div class="notif-btn" id="notif-btn" onclick="loadPanel('notifications')">
-            🔔<span class="notif-dot" id="notif-count" style="display:none">0</span>
+            🔔<span class="notif-dot" id="notif-count">0</span>
           </div>
         </div>
       </div>
@@ -1151,6 +1153,7 @@ function filterTable(input, tableId) {
     row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
   });
 }
+</script>
 
 <script src="lib/forms.js"></script>
 </body>
