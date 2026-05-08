@@ -6,8 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "node -e \"const fs=require('fs');const path=require('path');const dir='public';if(!fs.existsSync(dir))fs.mkdirSync(dir);fs.copyFileSync('Meep.html',path.join(dir,'index.html'));\"",
-    "vercel-build": "npm run build"
+    "build": "node -e \"const fs=require('fs');const path=require('path');const dir='public';if(!fs.existsSync(dir))fs.mkdirSync(dir);fs.copyFileSync('Meep.html',path.join(dir,'index.html'));\""
   },
   "keywords": [
     "meep",

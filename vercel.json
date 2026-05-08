@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
   "public": "public",
+  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -9,7 +9,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/public/$1"
+      "destination": "/public/index.html"
     }
   ]
 }
