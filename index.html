@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MEEP — Muthuvel Education Enhancement Program</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand: #1a3a5c;
+      --brand-light: #e8f0f9;
+      --gold: #c9902a;
+      --surface: #ffffff;
+      --page: #f4f6f9;
+      --text: #1a2233;
+      --muted: #6b7a90;
+      --border: rgba(0, 0, 0, 0.08);
+      --radius: 20px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'DM Sans', sans-serif; background: var(--page); color: var(--text); }
+    img { max-width: 100%; display: block; }
+    a { color: inherit; text-decoration: none; }
+    .page { max-width: 1180px; margin: 0 auto; padding: 24px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 48px; }
+    .logo { font-family: 'Playfair Display', serif; font-size: 22px; letter-spacing: .08em; color: var(--brand); font-weight: 600; }
+    .nav { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; }
+    .nav a { color: var(--muted); font-size: 14px; font-weight: 500; transition: color .15s ease; }
+    .nav a:hover { color: var(--brand); }
+    .hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 42px; align-items: center; min-height: calc(100vh - 120px); }
+    .hero-copy { max-width: 560px; }
+    .badge { display: inline-flex; align-items: center; gap: 10px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; padding: 10px 14px; border-radius: 999px; background: rgba(201, 144, 42, .12); color: var(--brand); margin-bottom: 18px; font-weight: 600; }
+    .hero-title { margin: 0 0 22px; font-size: clamp(3.1rem, 4.4vw, 4.8rem); line-height: 1.02; font-family: 'Playfair Display', serif; }
+    .hero-text { margin: 0 0 30px; max-width: 520px; color: var(--muted); line-height: 1.8; font-size: 1rem; }
+    .btn-group { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 30px; }
+    .btn { border: none; border-radius: 14px; padding: 16px 28px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform .2s ease, box-shadow .2s ease, background .2s ease; }
+    .btn-primary { background: var(--brand); color: white; }
+    .btn-secondary { background: white; border: 1px solid rgba(26, 58, 92, .12); color: var(--brand); }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 18px 40px rgba(26, 58, 92, .12); }
+    .stats-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 24px; }
+    .mini-card { background: white; border-radius: 18px; border: 1px solid var(--border); padding: 20px 22px; box-shadow: 0 14px 34px rgba(0,0,0,.05); }
+    .mini-card strong { display: block; font-size: 1.7rem; margin-bottom: 10px; color: var(--brand); }
+    .mini-card span { color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .hero-visual { background: radial-gradient(circle at top left, rgba(201, 144, 42, .12) 0%, transparent 40%), radial-gradient(circle at bottom right, rgba(45, 106, 159, .14) 0%, transparent 38%), linear-gradient(180deg, #ffffff 0%, #eef2f7 100%); border-radius: 32px; padding: 34px; box-shadow: 0 24px 70px rgba(0, 0, 0, .08); }
+    .hero-panels { display: grid; gap: 18px; }
+    .visual-card { background: white; border-radius: 24px; border: 1px solid var(--border); padding: 24px; box-shadow: 0 18px 40px rgba(0,0,0,.05); }
+    .visual-card h3 { margin: 0 0 10px; font-size: 16px; }
+    .visual-card p { margin: 0; color: var(--muted); line-height: 1.7; font-size: 14px; }
+    .hero-visual-footer { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 20px; }
+    .hero-panel { background: white; border-radius: 24px; border: 1px solid var(--border); padding: 24px; box-shadow: 0 16px 36px rgba(0,0,0,.05); }
+    .hero-panel strong { display: block; font-size: 1rem; margin-bottom: 10px; }
+    .hero-panel span { color: var(--muted); line-height: 1.8; font-size: 14px; }
+    .section { padding: 80px 0 20px; }
+    .section-title { font-family: 'Playfair Display', serif; font-size: 2.4rem; margin: 0 0 12px; }
+    .section-text { max-width: 760px; color: var(--muted); line-height: 1.8; margin: 0 0 30px; font-size: 1rem; }
+    .feature-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 28px; }
+    .feature-tile { background: white; border-radius: 22px; border: 1px solid var(--border); padding: 26px; box-shadow: 0 16px 38px rgba(0,0,0,.05); }
+    .feature-tile strong { display: block; font-size: 15px; margin-bottom: 10px; }
+    .feature-tile span { color: var(--muted); font-size: 14px; line-height: 1.8; }
+    .process-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+    .process-step { background: white; border-radius: 24px; border: 1px solid var(--border); padding: 28px; box-shadow: 0 16px 38px rgba(0,0,0,.05); }
+    .process-step h3 { margin: 0 0 14px; font-size: 16px; }
+    .process-step p { margin: 0; color: var(--muted); line-height: 1.8; font-size: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+    .stats-card { background: white; border-radius: 24px; border: 1px solid var(--border); padding: 32px 28px; text-align: center; box-shadow: 0 18px 44px rgba(0,0,0,.05); }
+    .stats-card strong { display: block; font-size: 2rem; margin-bottom: 12px; color: var(--brand); }
+    .stats-card span { display: block; color: var(--muted); line-height: 1.8; font-size: 14px; }
+    .cta-banner { display: flex; justify-content: space-between; align-items: center; gap: 20px; background: linear-gradient(90deg, #1a3a5c, #2d6a9f); color: white; border-radius: 26px; padding: 30px 34px; margin: 60px 0 20px; }
+    .cta-banner h2 { margin: 0; font-size: 1.8rem; line-height: 1.2; }
+    .cta-banner p { margin: 10px 0 0; color: rgba(255,255,255,.85); max-width: 560px; line-height: 1.7; }
+    .footer { padding: 40px 0; text-align: center; color: var(--muted); font-size: 14px; }
+    @media (max-width: 1050px) {
+      .hero { grid-template-columns: 1fr; min-height: auto; }
+      .hero-visual-footer, .hero-panels, .stats-row, .feature-grid, .process-grid, .grid-3 { grid-template-columns: 1fr; }
+      .nav { justify-content: center; }
+      .cta-banner { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div class="logo">MEEP</div>
+      <nav class="nav">
+        <a href="#features">Features</a>
+        <a href="#work">How it works</a>
+        <a href="#stats">Impact</a>
+        <a href="Meep.html">Open Demo</a>
+      </nav>
+    </div>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="badge">Student recruitment for Indian universities</div>
+        <h1 class="hero-title">Streamline PNG student placement with MEEP</h1>
+        <p class="hero-text">A role-based recruitment platform for administrators, agents, and applicants to manage applications, documents, approvals, and offer tracking from one central portal.</p>
+        <div class="btn-group">
+          <a class="btn btn-primary" href="Meep.html">Launch Demo</a>
+          <a class="btn btn-secondary" href="#features">Explore Features</a>
+        </div>
+        <div class="stats-row">
+          <div class="mini-card"><strong>47+</strong><span>Applicants managed in the current campaign</span></div>
+          <div class="mini-card"><strong>6</strong><span>Recruitment agents supported across PNG</span></div>
+          <div class="mini-card"><strong>23</strong><span>Approved applications processed to date</span></div>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="hero-panels">
+          <div class="visual-card">
+            <h3>Admin dashboard</h3>
+            <p>Monitor approvals, agent activity, and application status in one smart control center.</p>
+          </div>
+          <div class="visual-card">
+            <h3>Agent workflow</h3>
+            <p>Register students, verify documents, and submit applications with clear next steps.</p>
+          </div>
+          <div class="visual-card">
+            <h3>Applicant experience</h3>
+            <p>Keep students informed with progress updates, document reminders, and notifications.</p>
+          </div>
+        </div>
+        <div class="hero-visual-footer">
+          <div class="hero-panel">
+            <strong>Verification at a glance</strong>
+            <span>See missing, pending, and verified documents across every applicant.</span>
+          </div>
+          <div class="hero-panel">
+            <strong>Recruitment readiness</strong>
+            <span>Designed specifically for Parul University and PNG student onboarding.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <h2 class="section-title">Platform highlights</h2>
+      <p class="section-text">MEEP supports the end-to-end admissions workflow with structured roles, digital document tracking, and transparent application review.</p>
+      <div class="feature-grid">
+        <div class="feature-tile"><strong>Role-based dashboards</strong><span>Tailored experiences for admins, agents, and students with relevant actions and metrics.</span></div>
+        <div class="feature-tile"><strong>Document verification</strong><span>Track passports, transcripts, certificates, and medical forms with instant verification status.</span></div>
+        <div class="feature-tile"><strong>Approval workflow</strong><span>Review and process applications with approve, reject, and review actions.</span></div>
+        <div class="feature-tile"><strong>Progress tracking</strong><span>Keep applicants on track with clear status updates and document completion indicators.</span></div>
+      </div>
+    </section>
+
+    <section class="section" id="work">
+      <h2 class="section-title">How it works</h2>
+      <p class="section-text">MEEP turns student recruitment into a repeatable, visible process by aligning agents, administrators, and applicants on the same platform.</p>
+      <div class="process-grid">
+        <div class="process-step">
+          <h3>1. Register applicants</h3>
+          <p>Agents add student profiles, capture key details, and begin the document collection process.</p>
+        </div>
+        <div class="process-step">
+          <h3>2. Verify documents</h3>
+          <p>Admins and agents check passports, transcripts, and certificates before advancing each application.</p>
+        </div>
+        <div class="process-step">
+          <h3>3. Submit applications</h3>
+          <p>Once completed, applications are reviewed, approved, and shared with students for next steps.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="stats">
+      <h2 class="section-title">Impact at a glance</h2>
+      <p class="section-text">MEEP empowers recruitment teams to move faster with transparency, accountability, and fewer manual handoffs.</p>
+      <div class="grid-3">
+        <div class="stats-card"><strong>47+</strong><span>Student applicants managed during the intake.</span></div>
+        <div class="stats-card"><strong>6</strong><span>Recruitment agents currently active in the portal.</span></div>
+        <div class="stats-card"><strong>4/5</strong><span>Estimated improvement in application completion speed.</span></div>
+      </div>
+    </section>
+
+    <div class="cta-banner">
+      <div>
+        <h2>Ready to explore MEEP?</h2>
+        <p>Open the demo and experience the student recruitment workflow designed for Papua New Guinea and Parul University admissions.</p>
+      </div>
+      <a class="btn btn-primary" href="Meep.html">Open Demo</a>
+    </div>
+
+    <div class="footer">
+      <p>&copy; 2026 Muthuvel Education Enhancement Program</p>
+    </div>
+  </div>
+</body>
+</html>

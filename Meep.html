@@ -268,6 +268,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafbfc}
 <script>
 let currentRole = 'admin';
 let currentPanel = '';
+let currentUser = null;
+const API_BASE = '';
 
 function toast(msg, type='info') {
   const icons = {success:'✅',error:'❌',info:'ℹ',warn:'⚠'};
@@ -284,6 +286,20 @@ const ROLE_CREDS = {
   student: { email:'james.tari@student.com',  pw:'Student@2025' }
 };
 
+async function api(path, opts = {}) {
+  const options = { headers: {'Content-Type': 'application/json'}, ...opts };
+  if (options.body && typeof options.body !== 'string') {
+    options.body = JSON.stringify(options.body);
+  }
+
+  const res = await fetch(API_BASE + path, options);
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => ({}));
+    throw new Error(errorBody.error || res.statusText || 'Request failed');
+  }
+  return res.json();
+}
+
 function selectRole(role, btn) {
   currentRole = role;
   document.querySelectorAll('.role-tab').forEach(b => b.classList.remove('active'));
@@ -292,69 +308,105 @@ function selectRole(role, btn) {
   document.getElementById('login-pass').value  = ROLE_CREDS[role].pw;
 }
 
-function doLogin() {
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  setupRole(currentRole);
-  loadPanel('dashboard');
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-pass').value.trim();
+  if (!email || !password) {
+    toast('Please enter both email and password.', 'warn');
+    return;
+  }
+
+  try {
+    const { user } = await api('/api/login', { method: 'POST', body: { email, password } });
+    currentUser = user;
+    currentRole = user.role;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    await setupRole(currentRole);
+    await loadPanel('dashboard');
+    toast(`Welcome back, ${user.name}!`, 'success');
+  } catch (error) {
+    toast(error.message, 'error');
+  }
 }
 
 function doLogout() {
+  currentUser = null;
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
 }
 
-function setupRole(role) {
-  const configs = {
+async function setupRole(role) {
+  const defaultConfigs = {
     admin:   { name:'Dr. Anand Raj',    role:'Administrator · India',      avatar:'AR', badge:'Administrator', cls:'admin'   },
     agent:   { name:'Peter Kavali',     role:'Recruitment Agent · PNG',    avatar:'PK', badge:'Agent · PNG',   cls:'agent'   },
     student: { name:'James Tari',       role:'Student Applicant · PNG',    avatar:'JT', badge:'Student',       cls:'student' }
   };
-  const c = configs[role];
+
+  const c = currentUser ? {
+    name: currentUser.name,
+    role: currentUser.title || defaultConfigs[role].role,
+    avatar: currentUser.avatar || defaultConfigs[role].avatar,
+    badge: defaultConfigs[role].badge,
+    cls: defaultConfigs[role].cls
+  } : defaultConfigs[role];
+
   document.getElementById('sb-avatar').textContent = c.avatar;
   document.getElementById('sb-name').textContent   = c.name;
   document.getElementById('sb-role').textContent   = c.role;
   const rb = document.getElementById('role-badge');
-  rb.textContent = c.badge; rb.className = `badge-pill ${c.cls}`;
-
-  const menus = {
-    admin: [
-      {icon:'◼',label:'Dashboard',panel:'dashboard'},
-      {icon:'👥',label:'Agents',panel:'agents'},
-      {icon:'🎓',label:'Students',panel:'students'},
-      {icon:'📋',label:'Applications',panel:'applications'},
-      {icon:'📄',label:'Documents',panel:'documents'},
-      {icon:'📊',label:'Reports',panel:'reports'},
-      {icon:'⚙',label:'Settings',panel:'settings'},
-    ],
-    agent: [
-      {icon:'◼',label:'Dashboard',panel:'dashboard'},
-      {icon:'🎓',label:'My Students',panel:'students'},
-      {icon:'📋',label:'Applications',panel:'applications'},
-      {icon:'📄',label:'Documents',panel:'documents'},
-      {icon:'➕',label:'Register Student',panel:'register'},
-    ],
-    student: [
-      {icon:'◼',label:'My Dashboard',panel:'dashboard'},
-      {icon:'👤',label:'My Profile',panel:'profile'},
-      {icon:'📄',label:'Documents',panel:'documents'},
-      {icon:'📋',label:'My Application',panel:'applications'},
-      {icon:'🔔',label:'Notifications',panel:'notifications'},
-    ]
-  };
+  rb.textContent = c.badge;
+  rb.className = `badge-pill ${c.cls}`;
 
   const nav = document.getElementById('nav-menu');
   nav.innerHTML = '<div class="nav-label">Navigation</div>';
-  (menus[role]||[]).forEach(item => {
+
+  let menuItems = [];
+  try {
+    const data = await api(`/api/menu?role=${encodeURIComponent(role)}`);
+    menuItems = data.menu || [];
+  } catch (error) {
+    toast('Unable to load menu. Showing default navigation.', 'warn');
+    if (role === 'admin') {
+      menuItems = [
+        {icon:'◼',label:'Dashboard',panel:'dashboard'},
+        {icon:'👥',label:'Agents',panel:'agents'},
+        {icon:'🎓',label:'Students',panel:'students'},
+        {icon:'📋',label:'Applications',panel:'applications'},
+        {icon:'📄',label:'Documents',panel:'documents'},
+        {icon:'📊',label:'Reports',panel:'reports'},
+        {icon:'⚙',label:'Settings',panel:'settings'},
+      ];
+    } else if (role === 'agent') {
+      menuItems = [
+        {icon:'◼',label:'Dashboard',panel:'dashboard'},
+        {icon:'🎓',label:'My Students',panel:'students'},
+        {icon:'📋',label:'Applications',panel:'applications'},
+        {icon:'📄',label:'Documents',panel:'documents'},
+        {icon:'➕',label:'Register Student',panel:'register'},
+      ];
+    } else {
+      menuItems = [
+        {icon:'◼',label:'My Dashboard',panel:'dashboard'},
+        {icon:'👤',label:'My Profile',panel:'profile'},
+        {icon:'📄',label:'Documents',panel:'documents'},
+        {icon:'📋',label:'My Application',panel:'applications'},
+        {icon:'🔔',label:'Notifications',panel:'notifications'},
+      ];
+    }
+  }
+
+  menuItems.forEach(item => {
     const d = document.createElement('div');
-    d.className = 'nav-item'; d.dataset.panel = item.panel;
+    d.className = 'nav-item';
+    d.dataset.panel = item.panel;
     d.innerHTML = `<span class="nav-icon">${item.icon}</span><span>${item.label}</span>`;
     d.onclick = () => loadPanel(item.panel);
     nav.appendChild(d);
   });
 }
 
-function loadPanel(panel) {
+async function loadPanel(panel) {
   currentPanel = panel;
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.panel === panel));
   const titles = {dashboard:'Dashboard Overview',agents:'Agent Management',students:'Student Records',
@@ -362,7 +414,8 @@ function loadPanel(panel) {
     settings:'System Settings',register:'Register New Student',profile:'My Profile',notifications:'Notifications'};
   document.getElementById('page-title').textContent = titles[panel] || panel;
   const renders = {admin: renderAdmin, agent: renderAgent, student: renderStudent};
-  document.getElementById('content-area').innerHTML = renders[currentRole](panel);
+  const html = await renders[currentRole](panel);
+  set(html);
 }
 
 function set(html) { document.getElementById('content-area').innerHTML = html; }
@@ -372,6 +425,42 @@ function docRatio(total, verified) {
   const t=total||0, v=verified||0, pct=t>0?Math.round(v/t*100):0;
   return `<div style="font-size:11px;color:var(--muted);margin-bottom:2px">${v}/${t} verified</div>
           <div class="prog-bar" style="width:80px"><div class="prog-fill" style="width:${pct}%;background:${pct===100?'var(--success)':'var(--gold)'}"></div></div>`;
+}
+
+async function fetchAgents() {
+  const data = await api('/api/agents');
+  return data.agents || [];
+}
+
+async function fetchStudents() {
+  const data = await api('/api/students');
+  return data.students || [];
+}
+
+async function fetchApplications(status) {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  const data = await api(`/api/applications${query}`);
+  return data.applications || [];
+}
+
+async function fetchDocuments() {
+  const data = await api('/api/documents');
+  return data.documents || [];
+}
+
+async function fetchNotifications() {
+  const data = await api('/api/notifications');
+  return data.notifications || [];
+}
+
+async function fetchProfile() {
+  const data = await api('/api/profile');
+  return data.profile || null;
+}
+
+async function fetchReports() {
+  const data = await api('/api/reports');
+  return data.reports || { stats: {}, programs: [], pipeline: [], agentPerformance: [] };
 }
 
 // ── ADMIN ──
@@ -386,7 +475,11 @@ function renderAdmin(panel) {
   return `<p>Panel: ${panel}</p>`;
 }
 
-function adminDashboard() {
+async function adminDashboard() {
+  const [reports, applications, agents] = await Promise.all([fetchReports(), fetchApplications(), fetchAgents()]);
+  const pending = applications.filter(a => a.status === 'pending').length;
+  const approved = applications.filter(a => a.status === 'approved').length;
+  const recentApplications = applications.slice(0, 5);
   return `
   <div class="geo-banner">
     <span style="font-size:22px">🇵🇬</span>
@@ -394,10 +487,10 @@ function adminDashboard() {
     <div style="font-size:11px;color:rgba(255,255,255,.6)">Parul University, Vadodara, Gujarat · Partner: Muthuvel Education Enhancement Program</div></div>
   </div>
   <div class="stat-grid">
-    <div class="stat-card"><span class="stat-icon">🎓</span><div class="stat-label">Total Students</div><div class="stat-val">47</div><div class="stat-sub">↑ 8 this month</div></div>
-    <div class="stat-card"><span class="stat-icon">👥</span><div class="stat-label">Active Agents</div><div class="stat-val">6</div><div class="stat-sub">Across WNB Province</div></div>
-    <div class="stat-card"><span class="stat-icon">📋</span><div class="stat-label">Pending Review</div><div class="stat-val">12</div><div class="stat-sub">Awaiting admin action</div></div>
-    <div class="stat-card"><span class="stat-icon">✅</span><div class="stat-label">Approved</div><div class="stat-val">23</div><div class="stat-sub">Conversion: 49%</div></div>
+    <div class="stat-card"><span class="stat-icon">🎓</span><div class="stat-label">Total Students</div><div class="stat-val">${reports.stats.enrolled || 0}</div><div class="stat-sub">From database</div></div>
+    <div class="stat-card"><span class="stat-icon">👥</span><div class="stat-label">Active Agents</div><div class="stat-val">${agents.length}</div><div class="stat-sub">Across WNB Province</div></div>
+    <div class="stat-card"><span class="stat-icon">📋</span><div class="stat-label">Pending Review</div><div class="stat-val">${pending}</div><div class="stat-sub">Awaiting admin action</div></div>
+    <div class="stat-card"><span class="stat-icon">✅</span><div class="stat-label">Approved</div><div class="stat-val">${approved}</div><div class="stat-sub">Conversion rate</div></div>
   </div>
   <div class="row col-wide">
     <div class="card">
@@ -442,61 +535,46 @@ function adminDashboard() {
   </div>`;
 }
 
-function adminAgents() {
+async function adminAgents() {
+  const agents = await fetchAgents();
   return `<div class="card">
     <div class="card-header"><span class="card-title">Agents — West New Britain Province, PNG</span>
       <button class="btn btn-blue" onclick="openModal('addAgent')">+ Add Agent</button></div>
     <table><thead><tr><th>Name</th><th>Location</th><th>Phone</th><th>Students</th><th>Approved</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
-      ${[['Peter Kavali','Kimbe, WNB','+675 7001 1001',18,14,'active'],
-         ['Susan Mala','Hoskins, WNB','+675 7001 1002',14,10,'active'],
-         ['Tom Bana','Bialla, WNB','+675 7001 1003',9,6,'active'],
-         ['Grace Ito','Kimbe, WNB','+675 7001 1004',6,3,'active'],
-         ['Mark Tole','Talasea, WNB','+675 7001 1005',0,0,'inactive'],
-      ].map(([n,l,ph,s,a,st])=>`<tr>
-        <td><strong>${n}</strong></td><td>${l}</td><td>${ph}</td>
-        <td>${s}</td><td>${a}</td><td>${statusBadge(st)}</td>
-        <td style="display:flex;gap:4px">
-          <button class="btn btn-outline btn-sm">View</button>
-          <button class="btn btn-outline btn-sm">${st==='active'?'Suspend':'Activate'}</button>
-        </td></tr>`).join('')}
+      ${agents.map(agent => `
+        <tr>
+          <td><strong>${agent.name}</strong></td><td>${agent.location}</td><td>${agent.phone}</td>
+          <td>${agent.students}</td><td>${agent.approved}</td><td>${statusBadge(agent.status)}</td>
+          <td style="display:flex;gap:4px">
+            <button class="btn btn-outline btn-sm">View</button>
+            <button class="btn btn-outline btn-sm">${agent.status==='active'?'Suspend':'Activate'}</button>
+          </td></tr>`).join('')}
     </tbody></table></div>`;
 }
 
-function adminStudents() {
+async function adminStudents() {
+  const students = await fetchStudents();
   return `<div class="card">
-    <div class="card-header"><span class="card-title">All Students (47)</span>
+    <div class="card-header"><span class="card-title">All Students (${students.length})</span>
       <div class="search-bar">
         <input class="search-input" placeholder="Search students..." oninput="filterTable(this,'stbl')">
         <button class="btn btn-gold" onclick="openModal('addStudent')">+ Add Student</button>
       </div></div>
     <table id="stbl"><thead><tr><th>Name</th><th>Village</th><th>Program</th><th>Agent</th><th>Documents</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
-      ${[['James Tari','Kimbe','B.Tech CSE','Peter Kavali',3,4,'pending'],
-         ['Mary Pondo','Hoskins','BBA','Susan Mala',4,4,'reviewed'],
-         ['John Kaipu','Bialla','MBBS','Peter Kavali',4,4,'approved'],
-         ['Alice Wari','Talasea','B.Pharm','Tom Bana',4,4,'approved'],
-         ['Paul Kavana','Kimbe','B.Tech ME','Susan Mala',2,4,'rejected'],
-         ['Rose Baki','Hoskins','BCA','Grace Ito',1,4,'pending'],
-         ['Thomas Mala','Bialla','MBA','Peter Kavali',4,4,'reviewed'],
-      ].map(([n,v,p,a,dv,dt,s])=>`<tr>
-        <td><strong>${n}</strong></td><td>${v}</td><td>${p}</td><td>${a}</td>
-        <td>${docRatio(dt,dv)}</td><td>${statusBadge(s)}</td>
-        <td><button class="btn btn-outline btn-sm" onclick="openModal('viewStudent')">View</button></td>
-      </tr>`).join('')}
+      ${students.map(student => `
+        <tr>
+          <td><strong>${student.name}</strong></td><td>${student.village}</td><td>${student.program}</td><td>${student.agent}</td>
+          <td>${docRatio(student.docsTotal, student.docsVerified)}</td><td>${statusBadge(student.status)}</td>
+          <td><button class="btn btn-outline btn-sm" onclick="openModal('viewStudent')">View</button></td>
+        </tr>`).join('')}
     </tbody></table></div>`;
 }
 
-function adminApplications() {
-  const apps = [
-    ['APP-2025-001','James Tari','B.Tech CSE','Peter Kavali',3,4,'pending','2 Jan 2025'],
-    ['APP-2025-002','Mary Pondo','BBA','Susan Mala',4,4,'reviewed','28 Dec 2024'],
-    ['APP-2024-018','John Kaipu','MBBS','Peter Kavali',4,4,'approved','20 Dec 2024'],
-    ['APP-2024-017','Alice Wari','B.Pharm','Tom Bana',4,4,'approved','15 Dec 2024'],
-    ['APP-2024-015','Paul Kavana','B.Tech ME','Susan Mala',2,4,'rejected','10 Dec 2024'],
-    ['APP-2025-003','Rose Baki','BCA','Grace Ito',1,4,'pending','4 Jan 2025'],
-  ];
-  window._allApps = apps;
+async function adminApplications() {
+  const applications = await fetchApplications();
+  window._allApps = applications;
   return `
   <div class="tab-bar" id="app-tabs">
     ${['All','Pending','Reviewed','Approved','Rejected'].map((t,i)=>`
@@ -506,16 +584,16 @@ function adminApplications() {
     <div class="card-header"><span class="card-title">Application Reviews</span>
       <input class="search-input" placeholder="Search..." oninput="filterTable(this,'atbl')"></div>
     <table id="atbl"><thead><tr><th>App ID</th><th>Student</th><th>Program</th><th>Agent</th><th>Docs</th><th>Status</th><th>Actions</th></tr></thead>
-    <tbody id="apps-tbody">${renderAppRows(apps)}</tbody></table></div>`;
+    <tbody id="apps-tbody">${renderAppRows(applications)}</tbody></table></div>`;
 }
 
 function renderAppRows(apps) {
-  return apps.map(([id,n,p,a,dv,dt,s,d])=>`<tr>
-    <td style="font-size:11px;color:var(--muted)">${id}</td>
-    <td><strong>${n}</strong></td><td>${p}</td><td>${a}</td>
-    <td>${docRatio(dt,dv)}</td><td>${statusBadge(s)}</td>
+  return apps.map(app=>`<tr>
+    <td style="font-size:11px;color:var(--muted)">${app.id}</td>
+    <td><strong>${app.student}</strong></td><td>${app.program}</td><td>${app.agent}</td>
+    <td>${docRatio(app.docsTotal, app.docsVerified)}</td><td>${statusBadge(app.status)}</td>
     <td style="display:flex;gap:4px;flex-wrap:wrap">
-      ${s==='pending'||s==='reviewed'?`<button class="btn btn-success btn-sm" onclick="toast('Approved!','success')">Approve</button>
+      ${app.status==='pending'||app.status==='reviewed'?`<button class="btn btn-success btn-sm" onclick="toast('Approved!','success')">Approve</button>
       <button class="btn btn-danger btn-sm" onclick="toast('Rejected','warn')">Reject</button>`:''}
       <button class="btn btn-outline btn-sm" onclick="openModal('viewStudent')">View</button>
     </td></tr>`).join('');
@@ -524,65 +602,60 @@ function renderAppRows(apps) {
 function filterApps(el, status) {
   document.querySelectorAll('#app-tabs .tab-item').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  const f = status==='all' ? window._allApps : (window._allApps||[]).filter(a=>a[6]===status);
+  const f = status==='all' ? window._allApps : (window._allApps||[]).filter(a=>a.status===status);
   document.getElementById('apps-tbody').innerHTML = renderAppRows(f);
 }
 
-function adminDocuments() {
+async function adminDocuments() {
+  const docs = await fetchDocuments();
   return `<div class="card">
     <div class="card-header"><span class="card-title">Document Verification</span>
       <input class="search-input" placeholder="Search by student..." oninput="filterTable(this,'dtbl')"></div>
     <table id="dtbl"><thead><tr><th>Student</th><th>Type</th><th>File</th><th>Uploaded</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
-      ${[['James Tari','Passport','passport_james.pdf','2 Jan 2025','pending'],
-         ['James Tari','Academic Transcript','transcript_james.pdf','2 Jan 2025','pending'],
-         ['Mary Pondo','Passport','passport_mary.pdf','28 Dec 2024','verified'],
-         ['Mary Pondo','Grade 12 Certificate','cert_mary.pdf','28 Dec 2024','verified'],
-         ['John Kaipu','Medical Certificate','medical_john.pdf','20 Dec 2024','verified'],
-         ['Alice Wari','Passport','passport_alice.pdf','15 Dec 2024','verified'],
-      ].map(([s,t,f,d,st])=>`<tr>
-        <td><strong>${s}</strong></td><td>${t}</td>
-        <td style="font-size:11px;color:var(--brand-mid)">📎 ${f}</td><td>${d}</td>
-        <td>${statusBadge(st)}</td>
+      ${docs.map(doc=>`<tr>
+        <td><strong>${doc.student}</strong></td><td>${doc.type}</td>
+        <td style="font-size:11px;color:var(--brand-mid)">📎 ${doc.filename}</td><td>${doc.uploaded}</td>
+        <td>${statusBadge(doc.status)}</td>
         <td style="display:flex;gap:4px">
-          ${st==='pending'?`<button class="btn btn-success btn-sm" onclick="toast('Document verified!','success')">✓ Verify</button>
+          ${doc.status==='pending'?`<button class="btn btn-success btn-sm" onclick="toast('Document verified!','success')">✓ Verify</button>
           <button class="btn btn-danger btn-sm" onclick="toast('Document rejected','warn')">✗ Reject</button>`:
-          `<span style="font-size:11px;color:var(--muted)">${st==='verified'?'Verified ✓':'Rejected'}</span>`}
+          `<span style="font-size:11px;color:var(--muted)">${doc.status==='verified'?'Verified ✓':'Rejected'}</span>`}
         </td></tr>`).join('')}
     </tbody></table></div>`;
 }
 
-function adminReports() {
+async function adminReports() {
+  const reports = await fetchReports();
   return `
   <div class="stat-grid">
-    <div class="stat-card"><div class="stat-label">Enrolled</div><div class="stat-val">23</div><div class="stat-sub">Ready for Parul University</div></div>
-    <div class="stat-card"><div class="stat-label">Conversion Rate</div><div class="stat-val">49%</div><div class="stat-sub">Apps to enrollment</div></div>
-    <div class="stat-card"><div class="stat-label">Under Review</div><div class="stat-val">17</div><div class="stat-sub">Pending + reviewed</div></div>
-    <div class="stat-card"><div class="stat-label">Rejected</div><div class="stat-val">5</div><div class="stat-sub">Did not meet criteria</div></div>
+    <div class="stat-card"><div class="stat-label">Enrolled</div><div class="stat-val">${reports.stats.enrolled || 0}</div><div class="stat-sub">Ready for Parul University</div></div>
+    <div class="stat-card"><div class="stat-label">Conversion Rate</div><div class="stat-val">${reports.stats.conversionRate || '0%'}</div><div class="stat-sub">Apps to enrollment</div></div>
+    <div class="stat-card"><div class="stat-label">Under Review</div><div class="stat-val">${reports.stats.underReview || 0}</div><div class="stat-sub">Pending + reviewed</div></div>
+    <div class="stat-card"><div class="stat-label">Rejected</div><div class="stat-val">${reports.stats.rejected || 0}</div><div class="stat-sub">Did not meet criteria</div></div>
   </div>
   <div class="row col2">
     <div class="card" style="padding:16px">
       <div class="card-title" style="margin-bottom:14px">Enrollment by Program</div>
-      ${[['MBBS',12,45],['B.Tech CSE',10,37],['BBA',8,30],['B.Pharm',7,26],['B.Tech ME',6,22],['MBA',4,15]].map(([p,n,pct])=>`
+      ${reports.programs.map(program => `
       <div style="margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-          <span>${p}</span><span style="color:var(--muted)">${n} students</span></div>
-        <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:var(--brand)"></div></div>
+          <span>${program.program}</span><span style="color:var(--muted)">${program.students} students</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${program.pct}%;background:var(--brand)"></div></div>
       </div>`).join('')}
     </div>
     <div class="card" style="padding:16px">
       <div class="card-title" style="margin-bottom:14px">Application Pipeline</div>
-      ${[['Registered',47,'var(--muted)'],['Pending',12,'var(--gold)'],['Reviewed',5,'var(--brand-mid)'],
-         ['Approved',23,'var(--success)'],['Rejected',5,'var(--danger)']].map(([l,n,c])=>`
+      ${reports.pipeline.map(step => `
       <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f2f5;font-size:12px">
-        <div style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></div>
-        <span style="flex:1">${l}</span><span style="font-weight:500">${n}</span>
+        <div style="width:8px;height:8px;border-radius:50%;background:${step.color};flex-shrink:0"></div>
+        <span style="flex:1">${step.label}</span><span style="font-weight:500">${step.count}</span>
       </div>`).join('')}
       <div style="margin-top:12px">
         <div class="card-title" style="margin-bottom:8px">Agent Performance</div>
-        ${[['Peter Kavali',18,14],['Susan Mala',14,10],['Tom Bana',9,6],['Grace Ito',6,3]].map(([n,s,a])=>`
+        ${ (reports.agentPerformance || []).map(agent=>`
         <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid #f0f2f5">
-          <span>${n}</span><span>${a}/${s} approved</span></div>`).join('')}
+          <span>${agent.name}</span><span>${agent.approved}/${agent.total} approved</span></div>`).join('')}
       </div>
     </div>
   </div>`;
@@ -624,13 +697,21 @@ function renderAgent(panel) {
   return '';
 }
 
-function agentDashboard() {
-  return `<div class="alert info">🇵🇬 Welcome, Peter Kavali · Kimbe, West New Britain Province · Recruiting for Parul University</div>
+async function agentDashboard() {
+  const students = await fetchStudents();
+  const applications = await fetchApplications();
+  const myStudents = students.filter(student => student.agent === currentUser.name);
+  const myApplications = applications.filter(app => app.agent === currentUser.name);
+  const pending = myApplications.filter(a => a.status === 'pending').length;
+  const approved = myApplications.filter(a => a.status === 'approved').length;
+  const incompleteDocs = myStudents.filter(s => s.docsVerified < s.docsTotal).length;
+
+  return `<div class="alert info">🇵🇬 Welcome, ${currentUser.name} · ${currentUser.title} · Recruiting for Parul University</div>
   <div class="stat-grid">
-    <div class="stat-card"><div class="stat-label">My Students</div><div class="stat-val">18</div><div class="stat-sub">Total registered</div></div>
-    <div class="stat-card"><div class="stat-label">Pending Review</div><div class="stat-val">4</div><div class="stat-sub">Awaiting admin</div></div>
-    <div class="stat-card"><div class="stat-label">Incomplete Docs</div><div class="stat-val">3</div><div class="stat-sub">Need attention</div></div>
-    <div class="stat-card"><div class="stat-label">Approved</div><div class="stat-val">14</div><div class="stat-sub">Enrollment confirmed</div></div>
+    <div class="stat-card"><div class="stat-label">My Students</div><div class="stat-val">${myStudents.length}</div><div class="stat-sub">Total registered</div></div>
+    <div class="stat-card"><div class="stat-label">Pending Review</div><div class="stat-val">${pending}</div><div class="stat-sub">Awaiting admin</div></div>
+    <div class="stat-card"><div class="stat-label">Incomplete Docs</div><div class="stat-val">${incompleteDocs}</div><div class="stat-sub">Need attention</div></div>
+    <div class="stat-card"><div class="stat-label">Approved</div><div class="stat-val">${approved}</div><div class="stat-sub">Enrollment confirmed</div></div>
   </div>
   <div class="row col-wide">
     <div class="card">
@@ -638,28 +719,24 @@ function agentDashboard() {
         <button class="btn btn-gold" onclick="loadPanel('register')">+ Register New</button></div>
       <table><thead><tr><th>Name</th><th>Village</th><th>Program</th><th>Docs</th><th>Status</th><th>Action</th></tr></thead>
       <tbody>
-        ${[['James Tari','Kimbe','B.Tech CSE',3,4,'pending'],
-           ['John Kaipu','Bialla','MBBS',4,4,'approved'],
-           ['Thomas Mala','Hoskins','MBA',4,4,'reviewed'],
-           ['Ken Piari','Kimbe','BBA',2,4,'pending'],
-           ['Lina Wabo','Talasea','B.Pharm',1,4,'pending'],
-        ].map(([n,v,p,dv,dt,s])=>`<tr>
-          <td><strong>${n}</strong></td><td>${v}</td><td>${p}</td>
-          <td>${docRatio(dt,dv)}</td><td>${statusBadge(s)}</td>
-          <td style="display:flex;gap:4px">
-            <button class="btn btn-outline btn-sm" onclick="openModal('viewStudent')">View</button>
-            ${s==='pending'?`<button class="btn btn-blue btn-sm" onclick="openModal('submitApp')">Apply</button>`:''}
-          </td></tr>`).join('')}
+        ${myStudents.map(student => `
+          <tr>
+            <td><strong>${student.name}</strong></td><td>${student.village}</td><td>${student.program}</td>
+            <td>${docRatio(student.docsTotal, student.docsVerified)}</td><td>${statusBadge(student.status)}</td>
+            <td style="display:flex;gap:4px">
+              <button class="btn btn-outline btn-sm" onclick="openModal('viewStudent')">View</button>
+              ${student.status==='pending'?`<button class="btn btn-blue btn-sm" onclick="openModal('submitApp')">Apply</button>`:''}
+            </td></tr>`).join('')}
       </tbody></table>
     </div>
     <div>
       <div class="card" style="padding:16px;margin-bottom:14px">
         <div class="card-title" style="margin-bottom:12px">Doc Completion</div>
-        ${[['James Tari',3,4],['Ken Piari',2,4],['Lina Wabo',1,4]].map(([n,v,t])=>`
+        ${myStudents.slice(0,3).map(student => `
         <div style="margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
-            <span>${n}</span><span style="color:var(--muted)">${v}/${t}</span></div>
-          <div class="prog-bar"><div class="prog-fill" style="width:${v/t*100}%;background:var(--gold)"></div></div>
+            <span>${student.name}</span><span style="color:var(--muted)">${student.docsVerified}/${student.docsTotal}</span></div>
+          <div class="prog-bar"><div class="prog-fill" style="width:${Math.round((student.docsVerified / (student.docsTotal || 1)) * 100)}%;background:var(--gold)"></div></div>
         </div>`).join('')}
       </div>
       <div class="card" style="padding:16px">
@@ -674,57 +751,54 @@ function agentDashboard() {
   </div>`;
 }
 
-function agentStudents() {
+async function agentStudents() {
+  const students = await fetchStudents();
+  const myStudents = students.filter(student => student.agent === currentUser.name);
+
   return `<div class="card">
-    <div class="card-header"><span class="card-title">My Students (18)</span>
+    <div class="card-header"><span class="card-title">My Students (${myStudents.length})</span>
       <button class="btn btn-gold" onclick="loadPanel('register')">+ Register</button></div>
     <table><thead><tr><th>Name</th><th>Village</th><th>Age</th><th>Program</th><th>Documents</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
-      ${[['James Tari','Kimbe',22,'B.Tech CSE',3,4,'pending'],
-         ['John Kaipu','Bialla',21,'MBBS',4,4,'approved'],
-         ['Thomas Mala','Hoskins',24,'MBA',4,4,'reviewed'],
-         ['Ken Piari','Kimbe',20,'BBA',2,4,'pending'],
-         ['Lina Wabo','Talasea',19,'B.Pharm',1,4,'pending'],
-      ].map(([n,v,a,p,dv,dt,s])=>`<tr>
-        <td><strong>${n}</strong></td><td>${v}</td><td>${a}</td><td>${p}</td>
-        <td>${docRatio(dt,dv)}</td><td>${statusBadge(s)}</td>
+      ${myStudents.map(student => `<tr>
+        <td><strong>${student.name}</strong></td><td>${student.village}</td><td>${student.age || '-'}</td><td>${student.program}</td>
+        <td>${docRatio(student.docsTotal, student.docsVerified)}</td><td>${statusBadge(student.status)}</td>
         <td style="display:flex;gap:4px">
           <button class="btn btn-outline btn-sm">View</button>
-          ${s==='pending'?`<button class="btn btn-blue btn-sm">Submit App</button>`:''}
+          ${student.status==='pending'?`<button class="btn btn-blue btn-sm">Submit App</button>`:''}
         </td></tr>`).join('')}
     </tbody></table></div>`;
 }
 
-function agentApplications() {
+async function agentApplications() {
+  const applications = await fetchApplications();
+  const myApplications = applications.filter(app => app.agent === currentUser.name);
+
   return `<div class="card">
     <div class="card-header"><span class="card-title">Applications</span></div>
     <table><thead><tr><th>App ID</th><th>Student</th><th>Program</th><th>Docs</th><th>Status</th><th>Date</th></tr></thead>
     <tbody>
-      ${[['APP-2025-001','James Tari','B.Tech CSE',3,4,'pending','2 Jan 2025'],
-         ['APP-2024-018','John Kaipu','MBBS',4,4,'approved','20 Dec 2024'],
-         ['APP-2025-004','Thomas Mala','MBA',4,4,'reviewed','5 Jan 2025'],
-      ].map(([id,n,p,dv,dt,s,d])=>`<tr>
-        <td style="font-size:11px;color:var(--muted)">${id}</td>
-        <td><strong>${n}</strong></td><td>${p}</td>
-        <td>${docRatio(dt,dv)}</td><td>${statusBadge(s)}</td><td>${d}</td>
+      ${myApplications.map(app => `<tr>
+        <td style="font-size:11px;color:var(--muted)">${app.id}</td>
+        <td><strong>${app.student}</strong></td><td>${app.program}</td>
+        <td>${docRatio(app.docsTotal, app.docsVerified)}</td><td>${statusBadge(app.status)}</td><td>${app.date}</td>
       </tr>`).join('')}
     </tbody></table></div>`;
 }
 
-function agentDocuments() {
+async function agentDocuments() {
+  const documents = await fetchDocuments();
+  const myDocuments = documents.filter(doc => doc.agent === currentUser.name);
+
   return `<div class="card">
     <div class="card-header"><span class="card-title">Student Documents</span>
       <button class="btn btn-blue" onclick="openModal('uploadDoc')">↑ Upload</button></div>
     <table><thead><tr><th>Student</th><th>Type</th><th>File</th><th>Uploaded</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
-      ${[['James Tari','passport_james.pdf','Passport','pending'],
-         ['James Tari','transcript_james.pdf','Transcript','pending'],
-         ['James Tari','grade12_james.pdf','Certificate','verified'],
-         ['John Kaipu','passport_john.pdf','Passport','verified'],
-      ].map(([s,f,t,st])=>`<tr>
-        <td><strong>${s}</strong></td>
-        <td style="font-size:11px;color:var(--brand-mid)">📎 ${f}</td><td>${t}</td>
-        <td>2 Jan 2025</td><td>${statusBadge(st)}</td>
+      ${myDocuments.map(doc => `<tr>
+        <td><strong>${doc.student}</strong></td>
+        <td style="font-size:11px;color:var(--brand-mid)">📎 ${doc.file}</td><td>${doc.type}</td>
+        <td>${doc.uploaded}</td><td>${statusBadge(doc.status)}</td>
         <td><button class="btn btn-outline btn-sm">Pre-Verify</button></td>
       </tr>`).join('')}
     </tbody></table></div>`;
@@ -790,38 +864,49 @@ function renderStudent(panel) {
   return '';
 }
 
-function studentDashboard() {
-  return `<div class="alert success">📋 Application APP-2025-001 is pending review. Please upload your Medical Certificate to complete your application.</div>
+async function studentDashboard() {
+  const profile = await fetchProfile();
+  const documents = await fetchDocuments();
+  const applications = await fetchApplications();
+  const notifications = await fetchNotifications();
+
+  const application = applications.find(app => app.student === profile.fullName) || { id: 'N/A', status: 'pending', date: 'N/A', program: profile.programInterest, docsVerified: 0, docsTotal: 0 };
+  const docsUploaded = documents.filter(doc => doc.student === profile.fullName).length;
+  const verifiedDocs = documents.filter(doc => doc.student === profile.fullName && doc.status === 'verified').length;
+  const missingDocs = Math.max(0, application.docsTotal - docsUploaded);
+  const docProgress = application.docsTotal ? Math.round((docsUploaded / application.docsTotal) * 100) : 0;
+
+  return `<div class="alert success">📋 Application ${application.id} is ${application.status}. Please upload ${missingDocs} more document${missingDocs === 1 ? '' : 's'} to complete your application.</div>
   <div class="row col-wide">
     <div class="card" style="padding:18px">
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-        <div style="width:48px;height:48px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:16px;color:white;font-weight:600">JT</div>
+        <div style="width:48px;height:48px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:16px;color:white;font-weight:600">${profile.fullName.split(' ').map(n => n[0]).join('').slice(0,2)}</div>
         <div>
-          <div style="font-size:15px;font-weight:500">James Tari</div>
-          <div style="font-size:12px;color:var(--muted)">Kimbe, West New Britain · PNG</div>
+          <div style="font-size:15px;font-weight:500">${profile.fullName}</div>
+          <div style="font-size:12px;color:var(--muted)">${profile.village}, ${profile.district} · ${profile.nationality}</div>
         </div>
-        ${statusBadge('pending')}
+        ${statusBadge(application.status)}
       </div>
       <div class="grid-3" style="gap:10px">
         <div style="background:var(--brand-light);padding:10px;border-radius:8px;text-align:center">
           <div style="font-size:11px;color:var(--muted)">Program</div>
-          <div style="font-size:12px;font-weight:500;margin-top:2px">B.Tech CSE</div></div>
+          <div style="font-size:12px;font-weight:500;margin-top:2px">${profile.programInterest}</div></div>
         <div style="background:var(--gold-light);padding:10px;border-radius:8px;text-align:center">
           <div style="font-size:11px;color:var(--muted)">Agent</div>
-          <div style="font-size:12px;font-weight:500;margin-top:2px">Peter Kavali</div></div>
+          <div style="font-size:12px;font-weight:500;margin-top:2px">${profile.recruitingAgent}</div></div>
         <div style="background:var(--success-bg);padding:10px;border-radius:8px;text-align:center">
           <div style="font-size:11px;color:var(--muted)">University</div>
-          <div style="font-size:12px;font-weight:500;margin-top:2px">Parul Univ.</div></div>
+          <div style="font-size:12px;font-weight:500;margin-top:2px">Parul University</div></div>
       </div>
     </div>
     <div>
       <div class="card" style="padding:18px;margin-bottom:14px">
         <div class="card-title" style="margin-bottom:10px">Documents Uploaded</div>
         <div style="text-align:center;margin-bottom:10px">
-          <div style="font-size:32px;font-family:'Playfair Display',serif;font-weight:600;color:var(--brand)">3/4</div>
-          <div style="font-size:11px;color:var(--muted)">2 verified</div></div>
+          <div style="font-size:32px;font-family:'Playfair Display',serif;font-weight:600;color:var(--brand)">${docsUploaded}/${application.docsTotal || 4}</div>
+          <div style="font-size:11px;color:var(--muted)">${verifiedDocs} verified</div></div>
         <div class="prog-bar" style="height:8px;margin-bottom:10px">
-          <div class="prog-fill" style="width:75%;background:var(--gold)"></div></div>
+          <div class="prog-fill" style="width:${docProgress}%;background:var(--gold)"></div></div>
         <button class="btn btn-gold" style="width:100%" onclick="loadPanel('documents')">Manage Documents</button>
       </div>
       <div class="card" style="padding:16px">
@@ -839,8 +924,8 @@ function studentDashboard() {
   <div class="card" style="padding:18px">
     <div class="card-title" style="margin-bottom:14px">Application Timeline</div>
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;text-align:center">
-      ${[['Registered','done'],['Profile Done','done'],['Docs Upload','current'],
-         ['Agent Review','pending-dot'],['Admin Decision','pending-dot'],['Offer Letter','pending-dot']].map(([l,cls])=>`
+      ${[['Registered','done'],['Profile Done','done'],['Docs Upload', docsUploaded < (application.docsTotal || 4) ? 'current' : 'done'],
+         ['Agent Review', 'pending-dot'],['Admin Decision','pending-dot'],['Offer Letter','pending-dot']].map(([l,cls])=>`
       <div>
         <div style="display:flex;justify-content:center;margin-bottom:6px">
           <div class="tl-dot ${cls}" style="width:14px;height:14px;margin:0"></div></div>
@@ -850,24 +935,25 @@ function studentDashboard() {
   </div>`;
 }
 
-function studentProfile() {
+async function studentProfile() {
+  const profile = await fetchProfile();
   return `<div class="card" style="max-width:640px">
     <div class="card-header"><span class="card-title">My Profile</span><button class="btn btn-outline btn-sm">Edit</button></div>
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
-        <div style="width:56px;height:56px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:20px;color:white;font-weight:600">JT</div>
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:20px;color:white;font-weight:600">${profile.fullName.split(' ').map(n => n[0]).join('').slice(0,2)}</div>
         <div>
-          <div style="font-size:16px;font-weight:500">James Karo Tari</div>
-          <div style="font-size:12px;color:var(--muted)">james.tari@student.com</div>
+          <div style="font-size:16px;font-weight:500">${profile.fullName}</div>
+          <div style="font-size:12px;color:var(--muted)">${profile.email}</div>
         </div>
       </div>
       <div class="grid-2" style="gap:14px">
-        ${[['Full Name','James Karo Tari'],['Date of Birth','15 Mar 2002'],
-           ['Nationality','Papua New Guinean'],['Passport No.','P1234567'],
-           ['Village/Town','Kimbe'],['District','Kimbe'],
-           ['Phone','+675 7234 5678'],['Grade 12 Year','2023'],
-           ['Last School','Kimbe Secondary School'],['Program Interest','B.Tech CSE'],
-           ['Recruiting Agent','Peter Kavali'],['Agent Location','Kimbe, WNB'],
+        ${[['Full Name', profile.fullName],['Date of Birth', profile.dob],
+           ['Nationality', profile.nationality],['Passport No.', profile.passport],
+           ['Village/Town', profile.village],['District', profile.district],
+           ['Phone', profile.phone],['Grade 12 Year', profile.grade12Year],
+           ['Last School', profile.lastSchool],['Program Interest', profile.programInterest],
+           ['Recruiting Agent', profile.recruitingAgent],['Agent Location', profile.agentLocation],
         ].map(([l,v])=>`<div><div style="font-size:10px;color:var(--muted);margin-bottom:2px;text-transform:uppercase">${l}</div>
           <div style="font-size:13px">${v}</div></div>`).join('')}
       </div>
@@ -875,45 +961,59 @@ function studentProfile() {
   </div>`;
 }
 
-function studentDocuments() {
-  const docs = [
-    {type:'passport',label:'Passport (Photo Page)',file:'passport_james.pdf',date:'2 Jan 2025',status:'verified'},
-    {type:'transcript',label:'Academic Transcript',file:'transcript_james.pdf',date:'2 Jan 2025',status:'pending'},
-    {type:'certificate',label:'Grade 12 Certificate',file:'grade12_james.pdf',date:'30 Dec 2024',status:'verified'},
-    {type:'medical',label:'Medical Certificate',file:null,date:null,status:'missing'},
-  ];
-  return `<div class="alert warn">⚠ Medical Certificate is missing. Please upload to complete your application.</div>
+async function studentDocuments() {
+  const profile = await fetchProfile();
+  const documents = await fetchDocuments();
+  const studentDocs = documents.filter(doc => doc.student === profile.fullName);
+  const missingDocs = ['Passport', 'Academic Transcript', 'Grade 12 Certificate', 'Medical Certificate']
+    .filter(required => !studentDocs.some(doc => doc.type === required));
+
+  return `<div class="alert warn">⚠ ${missingDocs.length ? `${missingDocs.join(', ')} ${missingDocs.length === 1 ? 'is' : 'are'} missing. Please upload to complete your application.` : 'All required documents are uploaded.'}</div>
   <div class="card" style="max-width:660px">
     <div class="card-header"><span class="card-title">Required Documents</span></div>
     <div style="padding:8px 20px">
-      ${docs.map(d=>`
+      ${studentDocs.map(doc => `
       <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid #f0f2f5">
-        <div style="width:38px;height:38px;border-radius:8px;background:${d.status==='verified'?'var(--success-bg)':d.status==='missing'?'#f0f2f5':'var(--warn-bg)'};display:flex;align-items:center;justify-content:center;font-size:16px">
-          ${d.status==='verified'?'✅':d.status==='missing'?'📭':'⏳'}</div>
+        <div style="width:38px;height:38px;border-radius:8px;background:${doc.status==='verified'?'var(--success-bg)':doc.status==='pending'?'var(--warn-bg)':'#f0f2f5'};display:flex;align-items:center;justify-content:center;font-size:16px">
+          ${doc.status==='verified'?'✅':doc.status==='pending'?'⏳':'📭'}</div>
         <div style="flex:1">
-          <div style="font-size:12px;font-weight:500">${d.label}</div>
-          <div style="font-size:11px;color:var(--muted)">${d.file?`📎 ${d.file} · ${d.date}`:'Not uploaded yet'}</div>
+          <div style="font-size:12px;font-weight:500">${doc.type}</div>
+          <div style="font-size:11px;color:var(--muted)">📎 ${doc.filename} · ${doc.uploaded}</div>
         </div>
-        ${d.status==='missing'?'<span style="font-size:11px;color:var(--muted)">Missing</span>':statusBadge(d.status)}
-        <button class="btn btn-gold btn-sm" onclick="toast('Upload feature requires the running server','info')">${d.file?'↻ Replace':'↑ Upload'}</button>
+        ${statusBadge(doc.status)}
+        <button class="btn btn-gold btn-sm" onclick="toast('Upload feature requires the running server','info')">↻ Replace</button>
+      </div>`).join('')}
+      ${missingDocs.map(doc => `
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid #f0f2f5">
+        <div style="width:38px;height:38px;border-radius:8px;background:#f0f2f5;display:flex;align-items:center;justify-content:center;font-size:16px">📭</div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:500">${doc}</div>
+          <div style="font-size:11px;color:var(--muted)">Not uploaded yet</div>
+        </div>
+        <span style="font-size:11px;color:var(--muted)">Missing</span>
+        <button class="btn btn-gold btn-sm" onclick="toast('Upload feature requires the running server','info')">↑ Upload</button>
       </div>`).join('')}
     </div>
   </div>`;
 }
 
-function studentApplication() {
+async function studentApplication() {
+  const profile = await fetchProfile();
+  const applications = await fetchApplications();
+  const application = applications.find(app => app.student === profile.fullName) || { id: 'N/A', status: 'pending', program: profile.programInterest, date: 'N/A', docsVerified: 0, docsTotal: 4 };
+
   return `<div class="card" style="max-width:620px">
-    <div class="card-header"><span class="card-title">Application: APP-2025-001</span>${statusBadge('pending')}</div>
+    <div class="card-header"><span class="card-title">Application: ${application.id}</span>${statusBadge(application.status)}</div>
     <div style="padding:18px 22px">
       <div class="grid-2" style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
-        ${[['University','Parul University, Vadodara, India'],['Program','B.Tech (Computer Science)'],
-           ['Applied','2 January 2025'],['Intake','July 2025']
+        ${[['University','Parul University, Vadodara, India'],['Program',application.program],
+           ['Applied',application.date],['Intake','July 2025']
         ].map(([l,v])=>`<div><div style="font-size:10px;color:var(--muted)">${l}</div>
           <div style="font-size:13px;margin-top:2px">${v}</div></div>`).join('')}
       </div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Application Progress</div>
-      ${[['Application Submitted','2 Jan 2025','done'],
-         ['Document Verification','In progress — 3 of 4 docs received','current'],
+      ${[['Application Submitted',application.date,'done'],
+         ['Document Verification',`In progress — ${application.docsVerified} of ${application.docsTotal} docs received`,'current'],
          ['Admin Review','Scheduled after doc completion','pending-dot'],
          ['Approval Decision','Estimated: 3–5 working days','pending-dot'],
          ['Offer Letter Issued','From Parul University','pending-dot'],
@@ -928,23 +1028,17 @@ function studentApplication() {
   </div>`;
 }
 
-function studentNotifications() {
-  const notifs = [
-    {icon:'⚠',msg:'Your Medical Certificate is still missing. Please upload to proceed.',time:'Today, 10:30 AM',type:'warn',read:false},
-    {icon:'📋',msg:'Your application APP-2025-001 has been received by Muthuvel Education.',time:'2 Jan 2025',type:'info',read:false},
-    {icon:'👤',msg:'Your profile has been created by Agent Peter Kavali.',time:'28 Dec 2024',type:'info',read:false},
-    {icon:'✅',msg:'Your Grade 12 Certificate was successfully uploaded.',time:'30 Dec 2024',type:'success',read:true},
-    {icon:'✅',msg:'Your Passport was successfully uploaded and verified.',time:'2 Jan 2025',type:'success',read:true},
-  ];
+async function studentNotifications() {
+  const notifications = await fetchNotifications();
   return `<div class="card" style="max-width:620px">
     <div class="card-header"><span class="card-title">Notifications</span>
       <button class="btn btn-outline btn-sm" onclick="toast('All marked as read','info')">Mark all read</button></div>
     <div>
-      ${notifs.map(n=>`
+      ${notifications.map(n=>`
       <div style="padding:14px 18px;border-bottom:1px solid #f0f2f5;display:flex;gap:12px;background:${n.read?'transparent':n.type==='success'?'var(--success-bg)':n.type==='warn'?'var(--warn-bg)':'var(--brand-light)'}">
         <div style="font-size:16px;margin-top:1px">${n.icon}</div>
         <div style="flex:1">
-          <div style="font-size:12px;font-weight:${n.read?'400':'500'}">${n.msg}</div>
+          <div style="font-size:12px;font-weight:${n.read?'400':'500'}">${n.message}</div>
           <div style="font-size:10px;color:var(--muted);margin-top:3px">${n.time}</div>
         </div>
         ${!n.read?'<div style="width:8px;height:8px;border-radius:50%;background:var(--brand-mid);flex-shrink:0;margin-top:4px"></div>':''}
@@ -972,9 +1066,14 @@ function openModal(type) {
       </div>
       <div class="field-group"><label>Location *</label>
         <select><option value="">Select location...</option>
-          <option>Kimbe, WNB</option><option>Bialla, WNB</option><option>Hoskins, WNB</option><option>Talasea, WNB</option></select></div>`;
+          <option>Kimbe, WNB</option><option>Bialla, WNB</option><option>Hoskins, WNB</option><option>Talasea, WNB</option></select></div>
+      <div style="background:var(--brand-light);padding:10px;border-radius:6px;margin-top:12px">
+        <div style="font-size:11px;color:var(--brand);margin-bottom:4px">💡 Tip</div>
+        <div style="font-size:11px;color:var(--brand)">Use the full registration form for detailed agent profiles</div>
+      </div>`;
     footer.innerHTML = `<button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-blue" onclick="toast('Agent added successfully!','success');closeModal()">Add Agent</button>`;
+      <button class="btn btn-blue" onclick="showEnhancedAgentRegistration(); document.getElementById('modal-overlay').classList.remove('open'); setTimeout(() => document.getElementById('modal-overlay').classList.add('open'), 100)">Full Form</button>
+      <button class="btn btn-blue" onclick="toast('Agent added successfully!','success');closeModal()">Quick Add</button>`;
   }
   else if (type === 'addStudent') {
     title.textContent = 'Quick Register Student';
@@ -988,9 +1087,14 @@ function openModal(type) {
       <div class="field-group"><label>Program</label>
         <select><option value="">Select program...</option>
           ${['MBBS','B.Tech (CSE)','B.Tech (ME)','BBA','MBA','BCA','B.Pharm','B.Sc Nursing'].map(p=>`<option>${p}</option>`).join('')}
-        </select></div>`;
+        </select></div>
+      <div style="background:var(--gold-light);padding:10px;border-radius:6px;margin-top:12px">
+        <div style="font-size:11px;color:var(--gold);margin-bottom:4px">💡 Tip</div>
+        <div style="font-size:11px;color:var(--gold)">Use the full registration form to capture all student details</div>
+      </div>`;
     footer.innerHTML = `<button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-gold" onclick="toast('Student registered!','success');closeModal()">Register</button>`;
+      <button class="btn btn-gold" onclick="showEnhancedStudentRegistration(); document.getElementById('modal-overlay').classList.remove('open'); setTimeout(() => document.getElementById('modal-overlay').classList.add('open'), 100)">Full Form</button>
+      <button class="btn btn-gold" onclick="toast('Student registered!','success');closeModal()">Quick Add</button>`;
   }
   else if (type === 'viewStudent') {
     title.textContent = 'Student Profile';
@@ -1048,10 +1152,6 @@ function filterTable(input, tableId) {
   });
 }
 
-document.getElementById('modal-overlay').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
-});
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-</script>
+<script src="lib/forms.js"></script>
 </body>
 </html>

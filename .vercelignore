@@ -1,0 +1,13 @@
+node_modules
+.git
+.env.local
+.env.*.local
+*.log
+meep.db
+meep.db-journal
+.DS_Store
+Thumbs.db
+.vercel
+.next
+dist
+build
